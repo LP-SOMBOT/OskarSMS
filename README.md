@@ -9,8 +9,8 @@ OskarSMS is a lightweight, zero-configuration native Android application built s
 ## 🚀 Quick Download & Install
 
 1. Download the production signed APK:
-   👉 **[Download OskarSMS-v1.1.0-release.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/download/v1.1.0/OskarSMS-v1.1.0-release.apk)**
-   *(Direct APK: [OskarSMS.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/download/v1.1.0/OskarSMS.apk))*
+   👉 **[Download OskarSMS-v1.1.1-release.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/download/v1.1.1/OskarSMS-v1.1.1-release.apk)**
+   *(Direct APK: [OskarSMS.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/download/v1.1.1/OskarSMS.apk))*
 2. Tap the APK to install or update on the admin Android phone with the Hormuud SIM card.
 3. Open the app and grant:
    * **SMS Permission** (`RECEIVE_SMS` & `READ_SMS`)
@@ -22,7 +22,7 @@ OskarSMS is a lightweight, zero-configuration native Android application built s
 
 ---
 
-## ✨ Features (v1.1.0)
+## ✨ Features (v1.1.1)
 
 * **Production Connected**: Pre-configured directly to `https://oskarshop.so`.
 * **Live New Order Push Notifications**: The admin receives instant heads-up alerts with sound and vibration whenever a customer places a new order, both in the foreground and background!

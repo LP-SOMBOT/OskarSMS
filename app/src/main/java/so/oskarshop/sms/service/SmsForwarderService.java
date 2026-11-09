@@ -7,6 +7,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
@@ -290,10 +292,13 @@ public class SmsForwarderService extends Service {
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
+        Bitmap oskarLogo = BitmapFactory.decodeResource(getResources(), R.drawable.ic_oskar_logo);
+
         return new NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("OskarSMS Active")
             .setContentText("Auto-Verifying EVC Plus & Alerting New Orders 24/7")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(oskarLogo)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -303,12 +308,14 @@ public class SmsForwarderService extends Service {
     private void showPaymentMatchedNotification(String orderId, Double amount, String phone) {
         String amtStr = amount != null ? "$" + String.format("%.2f", amount) : "Payment";
         String body = amtStr + " from " + (phone != null ? phone : "customer") + " fulfilled Order #" + (orderId != null ? orderId : "");
+        Bitmap oskarLogo = BitmapFactory.decodeResource(getResources(), R.drawable.ic_oskar_logo);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, PAYMENT_CHANNEL_ID)
             .setContentTitle("✅ EVC Plus Payment Verified!")
             .setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(oskarLogo)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true);
 
@@ -352,19 +359,22 @@ public class SmsForwarderService extends Service {
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
+        Bitmap oskarLogo = BitmapFactory.decodeResource(getResources(), R.drawable.ic_oskar_logo);
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, ORDERS_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(summary)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(detailedText))
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(oskarLogo)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(adminPendingIntent)
             .setAutoCancel(true)
             .setDefaults(Notification.DEFAULT_ALL)
-            .addAction(R.drawable.ic_launcher_foreground, "Fur Admin", adminPendingIntent)
-            .addAction(R.drawable.ic_launcher_foreground, "App-ka", appPendingIntent);
+            .addAction(R.drawable.ic_notification, "Fur Admin", adminPendingIntent)
+            .addAction(R.drawable.ic_notification, "App-ka", appPendingIntent);
 
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) {
