@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import so.oskarshop.sms.model.SmsLogEntry;
 import so.oskarshop.sms.network.OskarApiClient;
 import so.oskarshop.sms.service.SmsForwarderService;
@@ -282,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // RecyclerView Adapter
-    private static class LogAdapter extends RecyclerView.Adapter<LogAdapter.ViewHolder> {
+    private class LogAdapter extends RecyclerView.Adapter<LogAdapter.ViewHolder> {
         private final List<SmsLogEntry> list;
 
         LogAdapter(List<SmsLogEntry> list) {
@@ -299,37 +300,44 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             SmsLogEntry item = list.get(position);
-            holder.tvSender.setText(item.sender != null ? item.sender : "Unknown");
-            holder.tvTime.setText(item.getFormattedTime());
-            holder.tvContent.setText(item.body);
 
-            String status = item.status != null ? item.status : "RECEIVED";
-            holder.tvStatusBadge.setText(status);
+            holder.tvLogTime.setText(item.getFormattedTime());
+            holder.tvRawMessage.setText(item.getRawMessage());
 
-            Context ctx = holder.itemView.getContext();
-            if ("MATCHED".equalsIgnoreCase(status)) {
-                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(ctx, R.color.emerald));
-                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_pill_badge);
-            } else if ("FAILED".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status)) {
-                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(ctx, R.color.rose));
-                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_pill_badge);
-            } else {
-                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(ctx, R.color.amber));
-                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_pill_badge);
-            }
-
-            if (item.amount != null && item.amount > 0) {
+            if (item.getAmount() != null && item.getAmount() > 0) {
+                holder.tvAmount.setText(String.format(Locale.US, "$%.2f", item.getAmount()));
                 holder.tvAmount.setVisibility(View.VISIBLE);
-                holder.tvAmount.setText(String.format("$%.2f", item.amount));
             } else {
                 holder.tvAmount.setVisibility(View.GONE);
             }
 
-            if (item.matchedOrderId != null && !item.matchedOrderId.isEmpty()) {
-                holder.tvOrderId.setVisibility(View.VISIBLE);
-                holder.tvOrderId.setText("#" + item.matchedOrderId);
+            if (item.getPayerPhone() != null && !item.getPayerPhone().isEmpty()) {
+                holder.tvPhone.setText(item.getPayerPhone());
+                holder.tvPhone.setVisibility(View.VISIBLE);
             } else {
-                holder.tvOrderId.setVisibility(View.GONE);
+                holder.tvPhone.setVisibility(View.GONE);
+            }
+
+            String status = item.getStatus() != null ? item.getStatus() : "RECEIVED";
+            holder.tvStatusBadge.setText(status);
+
+            if ("MATCHED".equalsIgnoreCase(status)) {
+                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
+                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_status_active);
+                if (item.getMatchedOrderId() != null && !item.getMatchedOrderId().isEmpty()) {
+                    holder.tvMatchedOrder.setText("Order #" + item.getMatchedOrderId());
+                    holder.tvMatchedOrder.setVisibility(View.VISIBLE);
+                } else {
+                    holder.tvMatchedOrder.setVisibility(View.GONE);
+                }
+            } else if ("FAILED".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status)) {
+                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.rose));
+                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_status_inactive);
+                holder.tvMatchedOrder.setVisibility(View.GONE);
+            } else {
+                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.primary_light));
+                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_status_inactive);
+                holder.tvMatchedOrder.setVisibility(View.GONE);
             }
         }
 
@@ -338,22 +346,22 @@ public class MainActivity extends AppCompatActivity {
             return list.size();
         }
 
-        static class ViewHolder extends RecyclerView.ViewHolder {
-            final TextView tvSender;
-            final TextView tvTime;
+        class ViewHolder extends RecyclerView.ViewHolder {
             final TextView tvStatusBadge;
+            final TextView tvMatchedOrder;
+            final TextView tvLogTime;
             final TextView tvAmount;
-            final TextView tvOrderId;
-            final TextView tvContent;
+            final TextView tvPhone;
+            final TextView tvRawMessage;
 
-            ViewHolder(View v) {
-                super(v);
-                tvSender = v.findViewById(R.id.tvSender);
-                tvTime = v.findViewById(R.id.tvTime);
-                tvStatusBadge = v.findViewById(R.id.tvStatusBadge);
-                tvAmount = v.findViewById(R.id.tvAmount);
-                tvOrderId = v.findViewById(R.id.tvOrderId);
-                tvContent = v.findViewById(R.id.tvContent);
+            ViewHolder(@NonNull View itemView) {
+                super(itemView);
+                tvStatusBadge = itemView.findViewById(R.id.tvStatusBadge);
+                tvMatchedOrder = itemView.findViewById(R.id.tvMatchedOrder);
+                tvLogTime = itemView.findViewById(R.id.tvLogTime);
+                tvAmount = itemView.findViewById(R.id.tvAmount);
+                tvPhone = itemView.findViewById(R.id.tvPhone);
+                tvRawMessage = itemView.findViewById(R.id.tvRawMessage);
             }
         }
     }
