@@ -76,7 +76,7 @@ public class OskarApiClient {
                 .url(targetUrl)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("x-forwarder-token", secretToken)
-                .addHeader("User-Agent", "OskarSMS-Android/1.0.0")
+                .addHeader("User-Agent", "OskarSMS-Android/1.0.1")
                 .post(body)
                 .build();
 
@@ -117,7 +117,7 @@ public class OskarApiClient {
             Request request = new Request.Builder()
                 .url(targetUrl)
                 .addHeader("x-forwarder-token", secretToken)
-                .addHeader("User-Agent", "OskarSMS-Android/1.0.0")
+                .addHeader("User-Agent", "OskarSMS-Android/1.0.1")
                 .get()
                 .build();
 

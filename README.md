@@ -9,14 +9,19 @@ OskarSMS is a lightweight, zero-configuration native Android application built s
 ## 🚀 Quick Download & Install
 
 1. Download the production signed APK:
-   👉 **[Download OskarSMS-v1.0.0-release.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/latest/download/OskarSMS-v1.0.0-release.apk)**
-2. Tap the APK to install on the admin Android phone with the Hormuud SIM card.
+   👉 **[Download OskarSMS-v1.0.1-release.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/download/v1.0.1/OskarSMS-v1.0.1-release.apk)**
+   *(Latest release: [Releases Page](https://github.com/LP-SOMBOT/OskarSMS/releases/latest))*
+2. Tap the APK to install or update on the admin Android phone with the Hormuud SIM card.
 3. Open the app and grant:
    * **SMS Permission** (`RECEIVE_SMS` & `READ_SMS`)
    * **Battery Optimization** (Set to *Unrestricted / Don't optimize* so Android never pauses the app)
 4. Ensure the master switch is **TURNED ON** (green).
 
 **That's it! No login, no URL configuration, no webhooks, and no templates required.**
+
+### 🔍 Smart Filtering Built-in (v1.0.1)
+* **Only Incoming Payments**: The APK strictly forwards SMS messages containing `"ka heshay"` (incoming receipts).
+* **Outgoing Transfers Dropped**: Any outgoing transfer (`ayaad uwareejisay`, `u wareejisay`, `bixisay`, `ku shubatay`) is completely filtered on the phone and never transmitted to the server.
 
 ---
 
