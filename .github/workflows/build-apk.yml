@@ -1,0 +1,75 @@
+name: Build & Release OskarSMS APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Signed Production APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      - name: Generate Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.7
+          chmod +x gradlew
+
+      - name: Build Signed Release APK
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Prepare Release Artifact
+        run: |
+          mkdir -p release-output
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.0.0-release.apk
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.0.0-release.apk"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OskarSMS-v1.0.0-APK
+          path: release-output/OskarSMS-v1.0.0-release.apk
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
+        with:
+          tag_name: v1.0.0
+          name: "OskarSMS v1.0.0 Production Release"
+          body: |
+            ### 📱 OskarSMS — Dedicated Android Auto-Verifier for OskarShop.so
+
+            **One-step installation for OskarShop Admin:**
+            1. Download `OskarSMS-v1.0.0-release.apk` below directly onto your Android phone.
+            2. Open and tap **Install** (Allow installation from this source).
+            3. Grant SMS and notification permissions.
+            4. Toggle **Turn On / Enable** & set Battery to Unrestricted.
+            
+            **No login, no complex templates (%mb% or webhooks) required.** Everything is built-in and auto-connected to `https://beta.oskarshop.so/api/sms-webhook`.
+          files: release-output/OskarSMS-v1.0.0-release.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

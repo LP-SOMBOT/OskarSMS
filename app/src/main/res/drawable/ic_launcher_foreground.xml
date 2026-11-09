@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Phone outline -->
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M38,20h32c3.31,0 6,2.69 6,6v56c0,3.31 -2.69,6 -6,6H38c-3.31,0 -6,-2.69 -6,-6V26c0,-3.31 2.69,-6 6,-6z"/>
+    <!-- Screen -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M36,28h36v46H36z"/>
+    <!-- Checkmark badge (Verified payment) -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M54,66a16,16 0,1 0,0 -32a16,16 0,1 0,0 32z"/>
+    <!-- Checkmark symbol -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M51,55.5l-4.5,-4.5l-1.5,1.5l6,6l12,-12l-1.5,-1.5z"/>
+</vector>
