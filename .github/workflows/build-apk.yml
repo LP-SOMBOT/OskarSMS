@@ -43,34 +43,40 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.0.1-release.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.0.1-release.apk"
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.0-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.0-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.0.1-APK
-          path: release-output/OskarSMS-v1.0.1-release.apk
+          name: OskarSMS-v1.1.0-APK
+          path: release-output/OskarSMS-v1.1.0-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.0.1
-          name: "OskarSMS v1.0.1 Production Release"
+          tag_name: v1.1.0
+          name: "OskarSMS v1.1.0 Production Release"
           body: |
-            ### 📱 OskarSMS v1.0.1 — Dedicated Android Auto-Verifier for OskarShop.so
+            ### 📱 OskarSMS v1.1.0 — Production Release for oskarshop.so
 
-            **What's New in v1.0.1:**
-            - **Strict Incoming Filter**: Only forwards SMS messages that include `"ka heshay"` (incoming money receipts).
-            - **Outgoing Suppression**: Automatically ignores and drops outgoing transfers (`ayaad uwareejisay`, `u wareejisay`, `wareejisay`, `bixisay`, `ku shubatay`, etc.) so personal transfers are never sent to the server.
+            **What's New in v1.1.0:**
+            - **Production Default Endpoint**: Configured directly to connect to `https://oskarshop.so`.
+            - **Live New Order Push Notifications**: The admin receives instant heads-up native alerts with sound and vibration whenever a customer places an order on OskarShop, both in the foreground and background!
+            - **Order Actions**: Quick actions to jump straight into the Admin Dashboard (`https://oskarshop.so/admin`) or view in OskarSMS.
+            - **Order Notification Controls**: New toggle and "Test Order Notification" button to verify sound and vibration anytime.
+            - **Smart EVC Plus Verification**: Fully compatible with resilient phone formats, leading zeros, and strict 2-decimal truncation ($1.19999838 -> $1.19).
 
             **Installation:**
-            1. Download `OskarSMS-v1.0.1-release.apk` below directly onto your Android phone.
+            1. Download `OskarSMS-v1.1.0-release.apk` below directly onto your Android phone.
             2. Open and tap **Install** (or update).
-            3. Ensure permissions are granted and master switch is turned ON.
-          files: release-output/OskarSMS-v1.0.1-release.apk
+            3. Grant SMS and Notification permissions, and turn the master switch ON.
+          files: |
+            release-output/OskarSMS-v1.1.0-release.apk
+            release-output/OskarSMS.apk
           draft: false
           prerelease: false
         env:

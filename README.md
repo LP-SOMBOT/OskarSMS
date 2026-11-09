@@ -1,42 +1,35 @@
 # OskarSMS 📱
 
-> **Dedicated Android Auto SMS Verifier for OskarShop.so EVC Plus Payments**
+> **Dedicated Android Auto-Verifier & Live Order Alerts for OskarShop.so**
 
-OskarSMS is a lightweight, zero-configuration native Android application built specifically for the OskarShop admin. It replaces third-party forwarders (which suffered from template tag bugs like `[content]` and `%mb%`) with a 100% reliable native background service.
+OskarSMS is a lightweight, zero-configuration native Android application built specifically for the OskarShop admin. It connects directly to **https://oskarshop.so** to automatically verify incoming Hormuud EVC Plus payment SMS messages and deliver real-time native push notifications whenever customers place new orders.
 
 ---
 
 ## 🚀 Quick Download & Install
 
 1. Download the production signed APK:
-   👉 **[Download OskarSMS-v1.0.1-release.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/download/v1.0.1/OskarSMS-v1.0.1-release.apk)**
-   *(Latest release: [Releases Page](https://github.com/LP-SOMBOT/OskarSMS/releases/latest))*
+   👉 **[Download OskarSMS-v1.1.0-release.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/download/v1.1.0/OskarSMS-v1.1.0-release.apk)**
+   *(Direct APK: [OskarSMS.apk](https://github.com/LP-SOMBOT/OskarSMS/releases/download/v1.1.0/OskarSMS.apk))*
 2. Tap the APK to install or update on the admin Android phone with the Hormuud SIM card.
 3. Open the app and grant:
    * **SMS Permission** (`RECEIVE_SMS` & `READ_SMS`)
+   * **Notification Permission** (`POST_NOTIFICATIONS` for Android 13+)
    * **Battery Optimization** (Set to *Unrestricted / Don't optimize* so Android never pauses the app)
 4. Ensure the master switch is **TURNED ON** (green).
 
 **That's it! No login, no URL configuration, no webhooks, and no templates required.**
 
-### 🔍 Smart Filtering Built-in (v1.0.1)
-* **Only Incoming Payments**: The APK strictly forwards SMS messages containing `"ka heshay"` (incoming receipts).
-* **Outgoing Transfers Dropped**: Any outgoing transfer (`ayaad uwareejisay`, `u wareejisay`, `bixisay`, `ku shubatay`) is completely filtered on the phone and never transmitted to the server.
-
 ---
 
-## ⚡ How It Works
+## ✨ Features (v1.1.0)
 
-1. **Native SMS Interception:**
-   When Hormuud sends an EVC Plus confirmation SMS (`[-EVCPlus-] waxaad $1.19 ka heshay 0613982172...`), Android's `SmsReceiver` directly reads the raw message body and sender address into memory.
-2. **Built-in Backend Integration:**
-   The app immediately performs an authenticated HTTP POST request to:
-   `https://beta.oskarshop.so/api/sms-webhook`
-   with header `x-forwarder-token: oskar_sms_sec_9941a87e2f5b40c6`.
-3. **Instant Order Fulfillment:**
-   OskarShop backend parses the amount ($1.19) and payer phone (0613982172), matches the pending order, marks it paid, and triggers automated product delivery.
-4. **Live Activity History:**
-   The admin can see every received payment, amount, and order status badge directly on the home screen.
+* **Production Connected**: Pre-configured directly to `https://oskarshop.so`.
+* **Live New Order Push Notifications**: The admin receives instant heads-up alerts with sound and vibration whenever a customer places a new order, both in the foreground and background!
+* **Quick Admin Actions**: One-tap shortcut from notification directly into the admin panel (`https://oskarshop.so/admin`).
+* **Strict Incoming Filter**: Only forwards SMS messages containing `"ka heshay"` (incoming money receipts). Outgoing transfers (`ayaad uwareejisay`) are never sent.
+* **Smart Matching Engine**: Matches exact two-decimal values without rounding up (e.g. `$1.19999838` -> `$1.19`), handles all phone prefixes (`061...`, `61...`, `25261...`, `077...`), and automatically assigns orders by timestamp.
+* **Test Alert Button**: Tap to hear and test the notification sound and vibration anytime.
 
 ---
 
@@ -45,4 +38,4 @@ OskarSMS is a lightweight, zero-configuration native Android application built s
 * **Foreground Service:** Runs with a lightweight background service to prevent Android OS from killing the process.
 * **Auto-Start on Boot:** Restarts monitoring automatically if the phone is rebooted or powered off.
 * **CPU WakeLock:** Guarantees network transmission completes even if the phone screen is locked and asleep.
-* **Dual Endpoint Fallback:** Automatically falls back to secondary endpoint if primary network connection is temporarily interrupted.
+* **Dual Endpoint Fallback:** Automatically falls back between `https://oskarshop.so` and secondary endpoints.

@@ -53,7 +53,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Dedicated EVC Plus Auto-Verifier"
+                        android:text="EVC Plus Verifier &amp; Live Order Alerts"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -61,7 +61,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="v1.0.0"
+                    android:text="v1.1.0"
                     android:textColor="@color/text_muted"
                     android:textSize="11sp"
                     android:background="@drawable/bg_pill_badge"
@@ -99,7 +99,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Auto Verifier Status"
+                                android:text="System Status"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
@@ -126,12 +126,12 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="All incoming Hormuud EVC Plus payment SMS messages are securely forwarded directly to OskarShop. No manual configuration or templates required."
+                        android:text="Securely connected to oskarshop.so. Auto-verifies EVC Plus payments and alerts you to new customer orders in real-time."
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
                         android:lineSpacingExtra="2dp" />
 
-                    <!-- Quick Stats in Card -->
+                    <!-- Quick Stats in Card (3 columns) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -144,14 +144,14 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:background="@drawable/bg_pill_badge"
-                            android:padding="10dp"
+                            android:padding="8dp"
                             android:orientation="vertical"
-                            android:layout_marginEnd="6dp">
+                            android:layout_marginEnd="4dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="TOTAL FORWARDED"
+                                android:text="SMS SENT"
                                 android:textColor="@color/text_muted"
                                 android:textSize="9sp"
                                 android:textStyle="bold" />
@@ -162,7 +162,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="0"
                                 android:textColor="@color/text_primary"
-                                android:textSize="18sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold"
                                 android:layout_marginTop="2dp" />
                         </LinearLayout>
@@ -172,14 +172,14 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:background="@drawable/bg_pill_badge"
-                            android:padding="10dp"
+                            android:padding="8dp"
                             android:orientation="vertical"
-                            android:layout_marginStart="6dp">
+                            android:layout_marginHorizontal="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="ORDERS AUTO-FULFILLED"
+                                android:text="MATCHED"
                                 android:textColor="@color/text_muted"
                                 android:textSize="9sp"
                                 android:textStyle="bold" />
@@ -190,12 +190,102 @@
                                 android:layout_height="wrap_content"
                                 android:text="0"
                                 android:textColor="@color/emerald"
-                                android:textSize="18sp"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_pill_badge"
+                            android:padding="8dp"
+                            android:orientation="vertical"
+                            android:layout_marginStart="4dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="ORDERS"
+                                android:textColor="@color/text_muted"
+                                android:textSize="9sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvTotalOrdersNotified"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textColor="@color/text_primary"
+                                android:textSize="16sp"
                                 android:textStyle="bold"
                                 android:layout_marginTop="2dp" />
                         </LinearLayout>
                     </LinearLayout>
 
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Order Notifications Settings Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/surface_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="New Order Push Alerts"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Plays sound and vibrates when new order is placed"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchOrderNotif"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnTestOrderAlert"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:layout_marginTop="12dp"
+                        android:text="🔔 Test Order Notification Sound &amp; Alert"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -230,13 +320,26 @@
                         android:gravity="center_vertical"
                         android:layout_marginTop="12dp">
 
-                        <TextView
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="SMS Access (Receive &amp; Read)"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="SMS Permissions"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Required to detect EVC Plus SMS"
+                                android:textColor="@color/text_muted"
+                                android:textSize="10sp" />
+                        </LinearLayout>
 
                         <Button
                             android:id="@+id/btnSmsPermission"
@@ -256,13 +359,26 @@
                         android:gravity="center_vertical"
                         android:layout_marginTop="4dp">
 
-                        <TextView
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Background Battery Saver"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Background Execution"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Keeps verifier active 24/7 uninterrupted"
+                                android:textColor="@color/text_muted"
+                                android:textSize="10sp" />
+                        </LinearLayout>
 
                         <Button
                             android:id="@+id/btnBatteryOptimization"
@@ -291,7 +407,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Target Endpoint"
+                                android:text="Production Target"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp" />
 
@@ -299,7 +415,7 @@
                                 android:id="@+id/tvEndpointUrl"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="beta.oskarshop.so/api/sms-webhook"
+                                android:text="oskarshop.so/api/sms-webhook"
                                 android:textColor="@color/text_muted"
                                 android:textSize="10sp"
                                 android:fontFamily="monospace" />

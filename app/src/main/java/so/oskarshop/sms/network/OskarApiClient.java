@@ -1,14 +1,19 @@
 package so.oskarshop.sms.network;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import so.oskarshop.sms.model.OrderItem;
 
 public class OskarApiClient {
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
@@ -76,7 +81,7 @@ public class OskarApiClient {
                 .url(targetUrl)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("x-forwarder-token", secretToken)
-                .addHeader("User-Agent", "OskarSMS-Android/1.0.1")
+                .addHeader("User-Agent", "OskarSMS-Android/1.1.0")
                 .post(body)
                 .build();
 
@@ -112,12 +117,75 @@ public class OskarApiClient {
         }
     }
 
+    public List<OrderItem> fetchNewOrders(String primaryUrl, String fallbackUrl, String secretToken, long since) {
+        List<OrderItem> list = executeGetOrders(primaryUrl, secretToken, since);
+        if (list != null) {
+            return list;
+        }
+
+        if (fallbackUrl != null && !fallbackUrl.isEmpty() && !fallbackUrl.equalsIgnoreCase(primaryUrl)) {
+            list = executeGetOrders(fallbackUrl, secretToken, since);
+            if (list != null) {
+                return list;
+            }
+        }
+
+        // Webhook action=orders fallback
+        String webhookOrdersUrl = "https://oskarshop.so/api/sms-webhook?action=orders";
+        list = executeGetOrders(webhookOrdersUrl, secretToken, since);
+        return list != null ? list : new ArrayList<>();
+    }
+
+    private List<OrderItem> executeGetOrders(String targetUrl, String secretToken, long since) {
+        try {
+            String fullUrl = targetUrl + (targetUrl.contains("?") ? "&" : "?") + "since=" + since;
+            Request request = new Request.Builder()
+                .url(fullUrl)
+                .addHeader("x-forwarder-token", secretToken)
+                .addHeader("User-Agent", "OskarSMS-Android/1.1.0")
+                .get()
+                .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    return null;
+                }
+
+                String resStr = response.body().string();
+                JsonObject obj = JsonParser.parseString(resStr).getAsJsonObject();
+                if (!obj.has("orders") || !obj.get("orders").isJsonArray()) {
+                    return null;
+                }
+
+                List<OrderItem> orders = new ArrayList<>();
+                JsonArray arr = obj.getAsJsonArray("orders");
+                for (JsonElement el : arr) {
+                    if (!el.isJsonObject()) continue;
+                    JsonObject o = el.getAsJsonObject();
+
+                    String id = o.has("id") ? o.get("id").getAsString() : "Order";
+                    String title = o.has("title") ? o.get("title").getAsString() : "Free Fire Diamonds";
+                    double amount = o.has("amount") ? o.get("amount").getAsDouble() : 0.0;
+                    String customerPhone = o.has("customerPhone") ? o.get("customerPhone").getAsString() : "N/A";
+                    String customerName = o.has("customerName") ? o.get("customerName").getAsString() : "Customer";
+                    String status = o.has("status") ? o.get("status").getAsString() : "pending";
+                    long createdAt = o.has("createdAt") ? o.get("createdAt").getAsLong() : System.currentTimeMillis();
+
+                    orders.add(new OrderItem(id, title, amount, customerPhone, customerName, status, createdAt));
+                }
+                return orders;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public boolean pingServer(String targetUrl, String secretToken) {
         try {
             Request request = new Request.Builder()
                 .url(targetUrl)
                 .addHeader("x-forwarder-token", secretToken)
-                .addHeader("User-Agent", "OskarSMS-Android/1.0.1")
+                .addHeader("User-Agent", "OskarSMS-Android/1.1.0")
                 .get()
                 .build();
 

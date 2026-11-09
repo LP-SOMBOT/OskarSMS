@@ -6,17 +6,23 @@ import android.content.SharedPreferences;
 public class SmsSettings {
     private static final String PREF_NAME = "oskar_sms_config";
 
-    public static final String DEFAULT_SERVER_URL = "https://beta.oskarshop.so/api/sms-webhook";
-    public static final String DEFAULT_FALLBACK_URL = "https://oskarshop.so/api/sms-webhook";
+    public static final String DEFAULT_SERVER_URL = "https://oskarshop.so/api/sms-webhook";
+    public static final String DEFAULT_FALLBACK_URL = "https://beta.oskarshop.so/api/sms-webhook";
+    public static final String DEFAULT_ORDERS_URL = "https://oskarshop.so/api/apk/orders";
+    public static final String DEFAULT_ORDERS_FALLBACK_URL = "https://beta.oskarshop.so/api/apk/orders";
     public static final String DEFAULT_SECRET_TOKEN = "oskar_sms_sec_9941a87e2f5b40c6";
 
     private static final String KEY_ENABLED = "is_enabled";
     private static final String KEY_SERVER_URL = "server_url";
     private static final String KEY_FALLBACK_URL = "fallback_url";
+    private static final String KEY_ORDERS_URL = "orders_url";
     private static final String KEY_SECRET_TOKEN = "secret_token";
     private static final String KEY_EVC_ONLY = "evc_only";
     private static final String KEY_TOTAL_FORWARDED = "total_forwarded";
     private static final String KEY_TOTAL_MATCHED = "total_matched";
+    private static final String KEY_TOTAL_ORDERS_NOTIFIED = "total_orders_notified";
+    private static final String KEY_ORDERS_NOTIF_ENABLED = "orders_notif_enabled";
+    private static final String KEY_LAST_CHECKED_ORDER_TIME = "last_checked_order_time";
     private static final String KEY_LAST_PING_SUCCESS = "last_ping_success";
     private static final String KEY_LAST_PING_TIME = "last_ping_time";
 
@@ -35,7 +41,13 @@ public class SmsSettings {
     }
 
     public String getServerUrl() {
-        return prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL);
+        String url = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL);
+        // Automatically migrate old beta URL to main production website
+        if (url != null && url.contains("beta.oskarshop.so")) {
+            url = DEFAULT_SERVER_URL;
+            setServerUrl(url);
+        }
+        return url;
     }
 
     public void setServerUrl(String url) {
@@ -44,6 +56,19 @@ public class SmsSettings {
 
     public String getFallbackUrl() {
         return prefs.getString(KEY_FALLBACK_URL, DEFAULT_FALLBACK_URL);
+    }
+
+    public String getOrdersUrl() {
+        String url = prefs.getString(KEY_ORDERS_URL, DEFAULT_ORDERS_URL);
+        if (url != null && url.contains("beta.oskarshop.so")) {
+            url = DEFAULT_ORDERS_URL;
+            prefs.edit().putString(KEY_ORDERS_URL, url).apply();
+        }
+        return url;
+    }
+
+    public String getOrdersFallbackUrl() {
+        return DEFAULT_ORDERS_FALLBACK_URL;
     }
 
     public String getSecretToken() {
@@ -56,6 +81,22 @@ public class SmsSettings {
 
     public void setEvcOnly(boolean evcOnly) {
         prefs.edit().putBoolean(KEY_EVC_ONLY, evcOnly).apply();
+    }
+
+    public boolean isOrderNotificationsEnabled() {
+        return prefs.getBoolean(KEY_ORDERS_NOTIF_ENABLED, true);
+    }
+
+    public void setOrderNotificationsEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_ORDERS_NOTIF_ENABLED, enabled).apply();
+    }
+
+    public long getLastCheckedOrderTime() {
+        return prefs.getLong(KEY_LAST_CHECKED_ORDER_TIME, 0);
+    }
+
+    public void setLastCheckedOrderTime(long time) {
+        prefs.edit().putLong(KEY_LAST_CHECKED_ORDER_TIME, time).apply();
     }
 
     public int getTotalForwarded() {
@@ -72,6 +113,14 @@ public class SmsSettings {
 
     public void incrementTotalMatched() {
         prefs.edit().putInt(KEY_TOTAL_MATCHED, getTotalMatched() + 1).apply();
+    }
+
+    public int getTotalOrdersNotified() {
+        return prefs.getInt(KEY_TOTAL_ORDERS_NOTIFIED, 0);
+    }
+
+    public void incrementTotalOrdersNotified() {
+        prefs.edit().putInt(KEY_TOTAL_ORDERS_NOTIFIED, getTotalOrdersNotified() + 1).apply();
     }
 
     public boolean isLastPingSuccess() {

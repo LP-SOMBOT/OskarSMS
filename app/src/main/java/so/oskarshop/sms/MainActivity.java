@@ -42,8 +42,11 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView tvMainStatus;
     private MaterialSwitch switchEnable;
+    private MaterialSwitch switchOrderNotif;
     private TextView tvTotalForwarded;
     private TextView tvTotalMatched;
+    private TextView tvTotalOrdersNotified;
+    private Button btnTestOrderAlert;
     private Button btnSmsPermission;
     private Button btnBatteryOptimization;
     private Button btnPingServer;
@@ -55,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private final BroadcastReceiver logUpdateReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             refreshLogsAndStats();
@@ -76,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         checkPermissionsAndPrompts();
         refreshLogsAndStats();
 
-        // Start background service if enabled
+        // Start persistent background service if enabled
         if (settings.isEnabled()) {
             SmsForwarderService.startListening(this);
         }
@@ -85,8 +88,11 @@ public class MainActivity extends AppCompatActivity {
     private void initViews() {
         tvMainStatus = findViewById(R.id.tvMainStatus);
         switchEnable = findViewById(R.id.switchEnable);
+        switchOrderNotif = findViewById(R.id.switchOrderNotif);
         tvTotalForwarded = findViewById(R.id.tvTotalForwarded);
         tvTotalMatched = findViewById(R.id.tvTotalMatched);
+        tvTotalOrdersNotified = findViewById(R.id.tvTotalOrdersNotified);
+        btnTestOrderAlert = findViewById(R.id.btnTestOrderAlert);
         btnSmsPermission = findViewById(R.id.btnSmsPermission);
         btnBatteryOptimization = findViewById(R.id.btnBatteryOptimization);
         btnPingServer = findViewById(R.id.btnPingServer);
@@ -112,10 +118,23 @@ public class MainActivity extends AppCompatActivity {
             updateStatusUi(isChecked);
             if (isChecked) {
                 SmsForwarderService.startListening(this);
-                Toast.makeText(this, "OskarSMS Activated: Monitoring EVC Plus", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "OskarSMS Activated: Monitoring EVC Plus & New Orders", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "OskarSMS Paused", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        // Setup Order Notifications Switch
+        switchOrderNotif.setChecked(settings.isOrderNotificationsEnabled());
+        switchOrderNotif.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            settings.setOrderNotificationsEnabled(isChecked);
+            Toast.makeText(this, isChecked ? "New order alerts enabled 🔔" : "New order alerts disabled", Toast.LENGTH_SHORT).show();
+        });
+
+        // Test Order Alert button
+        btnTestOrderAlert.setOnClickListener(v -> {
+            SmsForwarderService.testOrderNotification(this);
+            Toast.makeText(this, "🔔 Test notification triggered with sound!", Toast.LENGTH_SHORT).show();
         });
 
         // Permission buttons
@@ -194,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
                 btnPingServer.setEnabled(true);
                 btnPingServer.setText("Test Ping");
                 if (success) {
-                    Toast.makeText(this, "✅ Connected to OskarShop server!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "✅ Connected to oskarshop.so production!", Toast.LENGTH_LONG).show();
                 } else {
                     Toast.makeText(this, "⚠️ Could not reach server. Check internet connection.", Toast.LENGTH_LONG).show();
                 }
@@ -205,10 +224,11 @@ public class MainActivity extends AppCompatActivity {
     private void refreshLogsAndStats() {
         tvTotalForwarded.setText(String.valueOf(settings.getTotalForwarded()));
         tvTotalMatched.setText(String.valueOf(settings.getTotalMatched()));
+        tvTotalOrdersNotified.setText(String.valueOf(settings.getTotalOrdersNotified()));
 
-        List<SmsLogEntry> logs = logStorage.getLogs();
+        List<SmsLogEntry> storedLogs = logStorage.getLogs();
         logList.clear();
-        logList.addAll(logs);
+        logList.addAll(storedLogs);
         adapter.notifyDataSetChanged();
 
         if (logList.isEmpty()) {
@@ -225,19 +245,23 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         checkPermissionsAndPrompts();
         refreshLogsAndStats();
-        ContextCompat.registerReceiver(
-            this,
-            logUpdateReceiver,
-            new IntentFilter(SmsForwarderService.ACTION_NEW_LOG),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        );
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(SmsForwarderService.ACTION_NEW_LOG);
+        filter.addAction(SmsForwarderService.ACTION_NEW_ORDER);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(updateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(updateReceiver, filter);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         try {
-            unregisterReceiver(logUpdateReceiver);
+            unregisterReceiver(updateReceiver);
         } catch (Exception ignored) {}
     }
 
@@ -245,91 +269,91 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         checkPermissionsAndPrompts();
+        if (requestCode == PERMISSION_REQ_SMS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "✅ SMS Permission Granted", Toast.LENGTH_SHORT).show();
+                if (settings.isEnabled()) {
+                    SmsForwarderService.startListening(this);
+                }
+            } else {
+                Toast.makeText(this, "⚠️ SMS Permission is required for automatic payment verification", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
-    // RecyclerView Adapter for Log Entries
-    private class LogAdapter extends RecyclerView.Adapter<LogAdapter.ViewHolder> {
-        private final List<SmsLogEntry> items;
+    // RecyclerView Adapter
+    private static class LogAdapter extends RecyclerView.Adapter<LogAdapter.ViewHolder> {
+        private final List<SmsLogEntry> list;
 
-        LogAdapter(List<SmsLogEntry> items) {
-            this.items = items;
+        LogAdapter(List<SmsLogEntry> list) {
+            this.list = list;
         }
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_sms_log, parent, false);
-            return new ViewHolder(view);
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_sms_log, parent, false);
+            return new ViewHolder(v);
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            SmsLogEntry item = items.get(position);
+            SmsLogEntry item = list.get(position);
+            holder.tvSender.setText(item.sender != null ? item.sender : "Unknown");
+            holder.tvTime.setText(item.getFormattedTime());
+            holder.tvContent.setText(item.body);
 
-            holder.tvLogTime.setText(item.getFormattedTime());
-            holder.tvRawMessage.setText(item.getRawMessage());
+            String status = item.status != null ? item.status : "RECEIVED";
+            holder.tvStatusBadge.setText(status);
 
-            // Amount
-            if (item.getAmount() != null) {
-                holder.tvAmount.setText(String.format("$%.2f", item.getAmount()));
+            Context ctx = holder.itemView.getContext();
+            if ("MATCHED".equalsIgnoreCase(status)) {
+                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(ctx, R.color.emerald));
+                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_pill_badge);
+            } else if ("FAILED".equalsIgnoreCase(status) || "ERROR".equalsIgnoreCase(status)) {
+                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(ctx, R.color.rose));
+                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_pill_badge);
+            } else {
+                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(ctx, R.color.amber));
+                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_pill_badge);
+            }
+
+            if (item.amount != null && item.amount > 0) {
                 holder.tvAmount.setVisibility(View.VISIBLE);
+                holder.tvAmount.setText(String.format("$%.2f", item.amount));
             } else {
                 holder.tvAmount.setVisibility(View.GONE);
             }
 
-            // Phone
-            if (item.getPayerPhone() != null && !item.getPayerPhone().isEmpty()) {
-                holder.tvPhone.setText("From: " + item.getPayerPhone());
-                holder.tvPhone.setVisibility(View.VISIBLE);
+            if (item.matchedOrderId != null && !item.matchedOrderId.isEmpty()) {
+                holder.tvOrderId.setVisibility(View.VISIBLE);
+                holder.tvOrderId.setText("#" + item.matchedOrderId);
             } else {
-                holder.tvPhone.setText("Sender: " + item.getSender());
-            }
-
-            // Status Badge & Order ID
-            String status = item.getStatus() != null ? item.getStatus() : "RECEIVED";
-            holder.tvStatusBadge.setText(status);
-
-            if ("MATCHED".equalsIgnoreCase(status)) {
-                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
-                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_status_active);
-                if (item.getMatchedOrderId() != null) {
-                    holder.tvMatchedOrder.setText("Order #" + item.getMatchedOrderId());
-                    holder.tvMatchedOrder.setVisibility(View.VISIBLE);
-                } else {
-                    holder.tvMatchedOrder.setVisibility(View.GONE);
-                }
-            } else if ("FAILED".equalsIgnoreCase(status)) {
-                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.rose));
-                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_status_inactive);
-                holder.tvMatchedOrder.setVisibility(View.GONE);
-            } else {
-                holder.tvStatusBadge.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.primary_light));
-                holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_status_inactive);
-                holder.tvMatchedOrder.setVisibility(View.GONE);
+                holder.tvOrderId.setVisibility(View.GONE);
             }
         }
 
         @Override
         public int getItemCount() {
-            return items.size();
+            return list.size();
         }
 
-        class ViewHolder extends RecyclerView.ViewHolder {
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            final TextView tvSender;
+            final TextView tvTime;
             final TextView tvStatusBadge;
-            final TextView tvMatchedOrder;
-            final TextView tvLogTime;
             final TextView tvAmount;
-            final TextView tvPhone;
-            final TextView tvRawMessage;
+            final TextView tvOrderId;
+            final TextView tvContent;
 
-            ViewHolder(@NonNull View itemView) {
-                super(itemView);
-                tvStatusBadge = itemView.findViewById(R.id.tvStatusBadge);
-                tvMatchedOrder = itemView.findViewById(R.id.tvMatchedOrder);
-                tvLogTime = itemView.findViewById(R.id.tvLogTime);
-                tvAmount = itemView.findViewById(R.id.tvAmount);
-                tvPhone = itemView.findViewById(R.id.tvPhone);
-                tvRawMessage = itemView.findViewById(R.id.tvRawMessage);
+            ViewHolder(View v) {
+                super(v);
+                tvSender = v.findViewById(R.id.tvSender);
+                tvTime = v.findViewById(R.id.tvTime);
+                tvStatusBadge = v.findViewById(R.id.tvStatusBadge);
+                tvAmount = v.findViewById(R.id.tvAmount);
+                tvOrderId = v.findViewById(R.id.tvOrderId);
+                tvContent = v.findViewById(R.id.tvContent);
             }
         }
     }
