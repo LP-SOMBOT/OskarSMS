@@ -6,34 +6,29 @@ import android.content.Intent;
 import android.provider.Telephony;
 import android.telephony.SmsMessage;
 import android.util.Log;
-import java.util.regex.Pattern;
 import so.oskarshop.sms.service.SmsForwarderService;
 import so.oskarshop.sms.storage.SmsSettings;
+import so.oskarshop.sms.util.SmsInboxTracker;
 
+/**
+ * Universal High-Priority SMS Broadcast Receiver (Priority 2147483647).
+ * Captures 100% of incoming SMS from ANY sender and ANY number without restriction.
+ */
 public class SmsReceiver extends BroadcastReceiver {
     private static final String TAG = "OskarSmsReceiver";
 
-    // Strictly match outgoing transfers ("ayaad uwareejisay", "u wareejisay", "wareejisay", "bixisay", "ku shubatay", "u dirtay")
-    private static final Pattern OUTGOING_PATTERN = Pattern.compile(
-        "(u\\s*wareejisay|wareejisay|bixisay|ku\\s*shubatay|u\\s*dirtay)",
-        Pattern.CASE_INSENSITIVE
-    );
-
-    // Strictly match incoming payment receipt indicator ("ka heshay")
-    private static final Pattern INCOMING_PATTERN = Pattern.compile(
-        "ka\\s+heshay",
-        Pattern.CASE_INSENSITIVE
-    );
-
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (!Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        if (!Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(action) &&
+            !"android.provider.Telephony.WAP_PUSH_RECEIVED".equals(action)) {
             return;
         }
 
         SmsSettings settings = new SmsSettings(context);
         if (!settings.isEnabled()) {
-            Log.d(TAG, "OskarSMS is disabled by admin, skipping incoming SMS.");
+            Log.d(TAG, "OskarSMS is disabled by admin in settings, skipping incoming SMS.");
             return;
         }
 
@@ -43,9 +38,16 @@ public class SmsReceiver extends BroadcastReceiver {
         }
 
         String sender = messages[0].getDisplayOriginatingAddress();
-        if (sender == null) sender = "192";
+        if (sender == null || sender.trim().isEmpty()) {
+            sender = "Unknown";
+        }
 
         StringBuilder fullBodyBuilder = new StringBuilder();
+        long timestamp = messages[0].getTimestampMillis();
+        if (timestamp <= 0) {
+            timestamp = System.currentTimeMillis();
+        }
+
         for (SmsMessage msg : messages) {
             if (msg != null && msg.getDisplayMessageBody() != null) {
                 fullBodyBuilder.append(msg.getDisplayMessageBody());
@@ -53,41 +55,20 @@ public class SmsReceiver extends BroadcastReceiver {
         }
         String fullBody = fullBodyBuilder.toString();
 
-        Log.d(TAG, "Incoming SMS from " + sender + ": " + fullBody);
-
-        // Strict filter: only send incoming SMS that contains "ka heshay" and is NOT outgoing ("ayaad uwareejisay")
-        if (!isIncomingPaymentSms(fullBody)) {
-            Log.d(TAG, "Ignoring SMS: not an incoming payment with 'ka heshay' or is an outgoing transfer.");
+        if (fullBody.trim().isEmpty()) {
             return;
         }
 
-        Log.i(TAG, "Incoming payment SMS verified. Forwarding to foreground service...");
-        // Forward to Foreground Service to guarantee network transmission with WakeLock
+        Log.i(TAG, "SMS captured from sender: [" + sender + "]: " + fullBody);
+
+        // Deduplication: prevent duplicate processing between Broadcast and ContentObserver
+        String fingerprint = SmsInboxTracker.computeFingerprint(sender, fullBody, timestamp);
+        if (!SmsInboxTracker.markIfNew(context, fingerprint)) {
+            Log.d(TAG, "Duplicate broadcast SMS skipped: " + fingerprint);
+            return;
+        }
+
+        // Forward every single SMS immediately to SmsForwarderService
         SmsForwarderService.startForwarding(context, sender, fullBody);
-    }
-
-    /**
-     * Determines whether the received SMS is a valid incoming EVC Plus payment receipt.
-     * 
-     * Rule:
-     * 1. Must NOT match outgoing transfers ("ayaad uwareejisay", "u wareejisay", "bixisay", etc.)
-     * 2. MUST contain "ka heshay" ("you received from")
-     */
-    public static boolean isIncomingPaymentSms(String body) {
-        if (body == null || body.trim().isEmpty()) {
-            return false;
-        }
-
-        // 1. Check for outgoing transfer patterns - reject immediately
-        if (OUTGOING_PATTERN.matcher(body).find()) {
-            return false;
-        }
-
-        // 2. Check for incoming payment keyword "ka heshay" - must be present
-        if (!INCOMING_PATTERN.matcher(body).find()) {
-            return false;
-        }
-
-        return true;
     }
 }

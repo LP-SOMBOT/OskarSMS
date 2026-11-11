@@ -43,40 +43,42 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.1-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.2-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.1-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.2-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.1.1-APK
-          path: release-output/OskarSMS-v1.1.1-release.apk
+          name: OskarSMS-v1.1.2-APK
+          path: release-output/OskarSMS-v1.1.2-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.1.1
-          name: "OskarSMS v1.1.1 Production Release"
+          tag_name: v1.1.2
+          name: "OskarSMS v1.1.2 — 100% All-SMS Capture & Anti-Kill Edition"
           body: |
-            ### 📱 OskarSMS v1.1.1 — Official OskarShop Logo & Production Release
+            ### 📱 OskarSMS v1.1.2 — 100% All-SMS Capture & Anti-Kill Protection
 
-            **What's New in v1.1.1:**
-            - **Official OskarShop Brand Logo**: Updated launcher icons across all screen densities (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi), adaptive icons, round icons, in-app header, and notification badges with the official OskarShop logo!
-            - **Production Default Endpoint**: Configured directly to connect to `https://oskarshop.so`.
-            - **Live New Order Push Notifications**: Real-time foreground and background native heads-up alerts with sound and vibration whenever a customer places an order on OskarShop.
-            - **Order Actions**: Quick actions to jump straight into the Admin Dashboard (`https://oskarshop.so/admin`) or view in OskarSMS.
-            - **Order Notification Controls**: New toggle and "Test Order Notification" button to verify sound and vibration anytime.
-            - **Smart EVC Plus Verification**: Fully compatible with resilient phone formats, leading zeros, and strict 2-decimal truncation ($1.19999838 -> $1.19).
+            **What's New in v1.1.2:**
+            - **Capture 100% of All SMS Messages**: Removed all device-side filters, keyword restrictions, and sender number checks. Captures every incoming SMS from any number, carrier, or source without dropping anything on the phone.
+            - **Dual-Capture Architecture**:
+              1. **High-Priority Broadcast Receiver** (`priority="2147483647"` / max integer priority) for instant SMS reception.
+              2. **SQLite Database ContentObserver** listening directly on `content://sms` to catch incoming SMS as soon as Android writes it to the inbox.
+              3. **10-Second Inbox Reconciliation Poller** to ensure zero SMS are missed even during deep Doze / sleep mode.
+            - **Full Permissions & Telephony Access**: Full permissions for SMS, MMS, Telephony State, Post Notifications, WakeLock, and battery optimization bypass to prevent interruptions or background kills.
+            - **24/7 Watchdog Shield & Auto-Resurrection**: Automatically resurrects the service if swiped away from recent apps or killed by aggressive OEM task managers (MIUI, OneUI, HiOS, ColorOS).
+            - **Real-Time App Feed**: Every received SMS is displayed in the app's log with instant visual status (`[MATCHED]`, `[RECEIVED]`, `[IGNORED]`, `[FAILED]`).
 
             **Installation:**
-            1. Download `OskarSMS-v1.1.1-release.apk` below directly onto your Android phone.
-            2. Open and tap **Install** (or update).
-            3. Grant SMS and Notification permissions, and turn the master switch ON.
+            1. Download `OskarSMS-v1.1.2-release.apk` below directly onto your Android phone.
+            2. Tap **Install** (or update).
+            3. Grant Full Access permissions, allow Unrestricted Battery, and lock the app in Recent Apps.
           files: |
-            release-output/OskarSMS-v1.1.1-release.apk
+            release-output/OskarSMS-v1.1.2-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false

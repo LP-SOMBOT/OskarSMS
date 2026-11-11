@@ -1,5 +1,6 @@
 package so.oskarshop.sms.service;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.database.ContentObserver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -14,7 +16,9 @@ import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.util.Log;
 import androidx.annotation.Nullable;
@@ -30,9 +34,18 @@ import so.oskarshop.sms.R;
 import so.oskarshop.sms.model.OrderItem;
 import so.oskarshop.sms.model.SmsLogEntry;
 import so.oskarshop.sms.network.OskarApiClient;
+import so.oskarshop.sms.receiver.WatchdogReceiver;
 import so.oskarshop.sms.storage.SmsLogStorage;
 import so.oskarshop.sms.storage.SmsSettings;
+import so.oskarshop.sms.util.SmsInboxTracker;
 
+/**
+ * Persistent 24/7 Foreground Service with Dual-Capture Technology:
+ * 1. BroadcastReceiver (instant capture)
+ * 2. SQLite ContentObserver (instant inbox capture)
+ * 3. 10s Periodic Inbox Reconciliation Poller (fail-safe)
+ * 4. Watchdog & Auto-Restart Shield (anti-kill / anti-interrupt)
+ */
 public class SmsForwarderService extends Service {
     private static final String TAG = "OskarSmsService";
     private static final int FOREGROUND_NOTIFICATION_ID = 1001;
@@ -50,11 +63,12 @@ public class SmsForwarderService extends Service {
     public static final String EXTRA_BODY = "extra_body";
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private ScheduledExecutorService orderPollerExecutor;
+    private ScheduledExecutorService pollerExecutor;
     private OskarApiClient apiClient;
     private SmsSettings settings;
     private SmsLogStorage logStorage;
     private PowerManager.WakeLock wakeLock;
+    private ContentObserver smsContentObserver;
 
     public static void startListening(Context context) {
         Intent intent = new Intent(context, SmsForwarderService.class);
@@ -91,11 +105,20 @@ public class SmsForwarderService extends Service {
         createNotificationChannels();
         startForeground(FOREGROUND_NOTIFICATION_ID, buildForegroundNotification());
 
-        startOrderPolling();
+        // 1. Register SMS ContentObserver for instant SQLite inbox capture
+        registerSmsContentObserver();
+
+        // 2. Start background pollers (order alerts + periodic inbox reconciliation)
+        startBackgroundPollers();
+
+        // 3. Schedule 24/7 anti-kill watchdog
+        WatchdogReceiver.scheduleWatchdog(this);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        WatchdogReceiver.scheduleWatchdog(this);
+
         if (intent != null) {
             String action = intent.getAction();
             if (ACTION_FORWARD_SMS.equals(action)) {
@@ -120,19 +143,66 @@ public class SmsForwarderService extends Service {
         return START_STICKY;
     }
 
-    private void startOrderPolling() {
-        if (orderPollerExecutor != null && !orderPollerExecutor.isShutdown()) {
+    private void registerSmsContentObserver() {
+        if (smsContentObserver != null) return;
+        try {
+            smsContentObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
+                @Override
+                public void onChange(boolean selfChange, Uri uri) {
+                    super.onChange(selfChange, uri);
+                    Log.d(TAG, "ContentObserver notified SMS database change: " + uri);
+                    executor.execute(() -> scanAndForwardInboxMessages());
+                }
+            };
+            getContentResolver().registerContentObserver(
+                Uri.parse("content://sms"),
+                true,
+                smsContentObserver
+            );
+            Log.i(TAG, "Dual-Capture: Registered ContentObserver on content://sms");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to register ContentObserver: " + e.getMessage());
+        }
+    }
+
+    private void startBackgroundPollers() {
+        if (pollerExecutor != null && !pollerExecutor.isShutdown()) {
             return;
         }
 
-        // Initialize last checked timestamp if not set (starts from now minus 30 seconds)
         if (settings.getLastCheckedOrderTime() <= 0) {
             settings.setLastCheckedOrderTime(System.currentTimeMillis() - 30000);
         }
 
-        orderPollerExecutor = Executors.newSingleThreadScheduledExecutor();
-        // Poll every 6 seconds for new orders
-        orderPollerExecutor.scheduleWithFixedDelay(this::pollOrdersWorker, 2, 6, TimeUnit.SECONDS);
+        pollerExecutor = Executors.newScheduledThreadPool(2);
+
+        // 1. Order alert poller: checks every 6 seconds
+        pollerExecutor.scheduleWithFixedDelay(this::pollOrdersWorker, 2, 6, TimeUnit.SECONDS);
+
+        // 2. Fail-safe inbox sweep poller: checks every 10 seconds for any missed SMS
+        pollerExecutor.scheduleWithFixedDelay(this::scanAndForwardInboxMessages, 4, 10, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Sweeps recent inbox messages from the phone database and forwards any new messages.
+     * Captures 100% of SMS from any sender and any number.
+     */
+    private void scanAndForwardInboxMessages() {
+        if (!settings.isEnabled()) return;
+        try {
+            long window = System.currentTimeMillis() - 15 * 60 * 1000; // last 15 minutes
+            List<SmsInboxTracker.RawSms> messages = SmsInboxTracker.queryRecentInbox(this, window);
+            for (SmsInboxTracker.RawSms msg : messages) {
+                if (msg.body == null || msg.body.trim().isEmpty()) continue;
+                String fingerprint = SmsInboxTracker.computeFingerprint(msg.address, msg.body, msg.date);
+                if (SmsInboxTracker.markIfNew(this, fingerprint)) {
+                    Log.i(TAG, "Dual-Capture detected unforwarded SMS in inbox from [" + msg.address + "]: " + msg.body);
+                    processSms(msg.address, msg.body);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in scanAndForwardInboxMessages: " + e.getMessage());
+        }
     }
 
     private void pollOrdersWorker() {
@@ -177,14 +247,14 @@ public class SmsForwarderService extends Service {
         }
     }
 
-    private void processSms(String sender, String body) {
+    public void processSms(String sender, String body) {
         if (wakeLock != null && !wakeLock.isHeld()) {
             wakeLock.acquire(30000); // Hold for 30s max
         }
 
         executor.execute(() -> {
             try {
-                Log.i(TAG, "Forwarding SMS to OskarShop production backend...");
+                Log.i(TAG, "Forwarding captured SMS to OskarShop production backend: sender=" + sender);
 
                 OskarApiClient.ForwardResult result = apiClient.forwardSms(
                     settings.getServerUrl(),
@@ -204,6 +274,8 @@ public class SmsForwarderService extends Service {
                         showPaymentMatchedNotification(result.matchedOrderId, result.amount, result.phone);
                     } else if ("unmatched".equalsIgnoreCase(result.status)) {
                         status = "RECEIVED";
+                    } else if ("ignored".equalsIgnoreCase(result.status)) {
+                        status = "IGNORED";
                     } else {
                         status = result.status.toUpperCase();
                     }
@@ -239,7 +311,7 @@ public class SmsForwarderService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) {
-                // 1. Foreground listener channel (low priority, persistent)
+                // 1. Foreground listener channel (low priority, persistent 24/7)
                 NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     getString(R.string.channel_name),
@@ -295,8 +367,8 @@ public class SmsForwarderService extends Service {
         Bitmap oskarLogo = BitmapFactory.decodeResource(getResources(), R.drawable.ic_oskar_logo);
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("OskarSMS Active")
-            .setContentText("Auto-Verifying EVC Plus & Alerting New Orders 24/7")
+            .setContentTitle("OskarSMS Active (Dual-Capture)")
+            .setContentText("Capturing 100% of SMS & Alerting Orders 24/7")
             .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(oskarLogo)
             .setContentIntent(pendingIntent)
@@ -326,7 +398,6 @@ public class SmsForwarderService extends Service {
     }
 
     public void showNewOrderNotification(OrderItem order) {
-        // Wake CPU momentarily so notification sounds even if device is asleep
         if (wakeLock != null && !wakeLock.isHeld()) {
             wakeLock.acquire(5000);
         }
@@ -341,7 +412,6 @@ public class SmsForwarderService extends Service {
             + "Macmiilka: " + order.customerPhone + " (" + order.customerName + ")\n"
             + "Alaabta: " + order.title;
 
-        // Intent to open OskarShop Admin in browser
         Intent adminWebIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://oskarshop.so/admin"));
         PendingIntent adminPendingIntent = PendingIntent.getActivity(
             this,
@@ -350,7 +420,6 @@ public class SmsForwarderService extends Service {
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
-        // Intent to open OskarSMS app
         Intent appIntent = new Intent(this, MainActivity.class);
         PendingIntent appPendingIntent = PendingIntent.getActivity(
             this,
@@ -382,6 +451,34 @@ public class SmsForwarderService extends Service {
         }
     }
 
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        Log.w(TAG, "onTaskRemoved: User swiped app from Recents. Auto-resurrecting service immediately...");
+
+        Intent restartIntent = new Intent(getApplicationContext(), SmsForwarderService.class);
+        restartIntent.setAction(ACTION_START_LISTENING);
+        PendingIntent restartPendingIntent = PendingIntent.getService(
+            getApplicationContext(),
+            9999,
+            restartIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.set(
+                AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + 1000,
+                restartPendingIntent
+            );
+        }
+
+        try {
+            ContextCompat.startForegroundService(getApplicationContext(), restartIntent);
+        } catch (Exception ignored) {}
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -391,12 +488,18 @@ public class SmsForwarderService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (smsContentObserver != null) {
+            try {
+                getContentResolver().unregisterContentObserver(smsContentObserver);
+            } catch (Exception ignored) {}
+        }
         executor.shutdown();
-        if (orderPollerExecutor != null) {
-            orderPollerExecutor.shutdown();
+        if (pollerExecutor != null) {
+            pollerExecutor.shutdown();
         }
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
+        WatchdogReceiver.scheduleWatchdog(this);
     }
 }

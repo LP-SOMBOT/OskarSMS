@@ -80,9 +80,10 @@ public class MainActivity extends AppCompatActivity {
         checkPermissionsAndPrompts();
         refreshLogsAndStats();
 
-        // Start persistent background service if enabled
+        // Start persistent background service if enabled and schedule watchdog
         if (settings.isEnabled()) {
             SmsForwarderService.startListening(this);
+            so.oskarshop.sms.receiver.WatchdogReceiver.scheduleWatchdog(this);
         }
     }
 
@@ -163,13 +164,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkPermissionsAndPrompts() {
-        // SMS
+        // SMS & Telephony Full Access
         if (PermissionUtils.hasSmsPermissions(this)) {
-            btnSmsPermission.setText("Granted ✅");
+            btnSmsPermission.setText("Full Access ✅");
             btnSmsPermission.setTextColor(ContextCompat.getColor(this, R.color.emerald));
             btnSmsPermission.setEnabled(false);
         } else {
-            btnSmsPermission.setText("Grant Permission ⚠️");
+            btnSmsPermission.setText("Grant Full Access ⚠️");
             btnSmsPermission.setTextColor(ContextCompat.getColor(this, R.color.amber));
             btnSmsPermission.setEnabled(true);
             requestSmsPermissions();
@@ -197,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
     private void requestSmsPermissions() {
         ActivityCompat.requestPermissions(
             this,
-            new String[]{Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS},
+            PermissionUtils.REQUIRED_PERMISSIONS,
             PERMISSION_REQ_SMS
         );
     }

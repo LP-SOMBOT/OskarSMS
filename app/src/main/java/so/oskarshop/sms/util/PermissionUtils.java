@@ -12,10 +12,19 @@ import androidx.core.content.ContextCompat;
 
 public class PermissionUtils {
 
+    public static final String[] REQUIRED_PERMISSIONS = {
+        Manifest.permission.RECEIVE_SMS,
+        Manifest.permission.READ_SMS,
+        Manifest.permission.READ_PHONE_STATE
+    };
+
     public static boolean hasSmsPermissions(Context context) {
-        boolean receive = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED;
-        boolean read = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED;
-        return receive && read;
+        for (String perm : REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static boolean hasNotificationPermission(Context context) {
@@ -44,7 +53,18 @@ public class PermissionUtils {
                 Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                openAppDetailsSettings(context);
+            }
         }
+    }
+
+    public static void openAppDetailsSettings(Context context) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.parse("package:" + context.getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (Exception ignored) {}
     }
 }
