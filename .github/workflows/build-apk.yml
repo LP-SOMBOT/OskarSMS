@@ -43,41 +43,37 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.4-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.5-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.4-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.5-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.1.4-APK
-          path: release-output/OskarSMS-v1.1.4-release.apk
+          name: OskarSMS-v1.1.5-APK
+          path: release-output/OskarSMS-v1.1.5-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.1.4
-          name: "OskarSMS v1.1.4 — In-App Self-Updating Engine & Direct Installation"
+          tag_name: v1.1.5
+          name: "OskarSMS v1.1.5 — New Notification Bar Icon & In-App OTA Update Test"
           body: |
-            ### 📱 OskarSMS v1.1.4 — In-App Self-Updating Engine & Direct Installation
+            ### 📱 OskarSMS v1.1.5 — New Notification Bar Icon & In-App OTA Update Test
 
-            **What's New in v1.1.4:**
-            - **Self-Updating Engine (OTA)**: OskarSMS now updates itself directly within the app! No need for staff to visit external websites or manually check GitHub.
-            - **Automatic Update Detection**: The app automatically polls `oskarshop.so/api/apk/update` (with seamless GitHub fallback) on launch and in the background.
-            - **Full-Screen Dismissible Update Screen**: Shows version comparison (`v1.1.3 ➔ v1.1.4`), what's new, and download progress in real time. Can be dismissed at any time.
-            - **Direct Package Installer via FileProvider**: Streams the APK directly with a live percentage bar, verifies integrity, and immediately prompts the system package installer.
-            - **Install Unknown Sources Assistant**: One-tap quick setting button to grant the install permission if not already enabled.
-            - **Zero Review / No Admin Approval Required**: Designed exclusively for internal staff to stay updated with 1 tap.
-            - **Dual-Capture & Order Alerts**: All 24/7 SMS capture (BroadcastReceiver + SQLite ContentObserver) and order notification features active and preserved.
+            **What's New in v1.1.5:**
+            - **New Status Bar Notification Icon**: Replaced old generic cart/bag icon with the custom OskarShop anime gaming character avatar.
+            - **Multi-Density Crisp Assets**: Added dedicated `mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, and `xxxhdpi` notification icons with pure alpha-transparency silhouette for perfect status bar rendering on all Android versions.
+            - **End-to-End OTA In-App Update Verification**: Tests the in-app self-updating engine (download, progress tracking, and direct package installer).
+            - **All 24/7 Features Active**: Dual-capture SMS monitoring (Broadcast + SQLite ContentObserver) and instant order sound alerts running uninterrupted.
 
             **Installation:**
-            1. Existing users on v1.1.3 or earlier can tap **Update** directly in the app or install `OskarSMS-v1.1.4-release.apk` below.
-            2. Grant "Install unknown apps" permission when prompted.
-            3. Tap **Install** to complete the instant upgrade.
+            1. Existing users on v1.1.4 can simply tap **Update** inside the app.
+            2. Or download `OskarSMS-v1.1.5-release.apk` below directly.
           files: |
-            release-output/OskarSMS-v1.1.4-release.apk
+            release-output/OskarSMS-v1.1.5-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false
