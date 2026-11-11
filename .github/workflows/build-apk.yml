@@ -43,43 +43,41 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.3-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.4-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.3-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.4-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.1.3-APK
-          path: release-output/OskarSMS-v1.1.3-release.apk
+          name: OskarSMS-v1.1.4-APK
+          path: release-output/OskarSMS-v1.1.4-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.1.3
-          name: "OskarSMS v1.1.3 — 100% All-SMS Capture & Compatible Install"
+          tag_name: v1.1.4
+          name: "OskarSMS v1.1.4 — In-App Self-Updating Engine & Direct Installation"
           body: |
-            ### 📱 OskarSMS v1.1.3 — 100% All-SMS Capture & Compatible Installation
+            ### 📱 OskarSMS v1.1.4 — In-App Self-Updating Engine & Direct Installation
 
-            **What's New in v1.1.3:**
-            - **Fixed Package Installation**: Removed incompatible `android:persistent` system-only flag that caused Android Package Installer to throw "App not installed" on user devices.
-            - **Capture 100% of All SMS Messages**: Removed all device-side filters, keyword restrictions, and sender number checks. Captures every incoming SMS from any number, carrier, or source without dropping anything on the phone.
-            - **Dual-Capture Architecture**:
-              1. **High-Priority Broadcast Receiver** (`priority="999"`) for instant SMS reception.
-              2. **SQLite Database ContentObserver** listening directly on `content://sms` to catch incoming SMS as soon as Android writes it to the inbox.
-              3. **10-Second Inbox Reconciliation Poller** to ensure zero SMS are missed even during deep Doze / sleep mode.
-            - **Full Permissions & Telephony Access**: Full permissions for SMS, Telephony State, Post Notifications, WakeLock, and battery optimization bypass.
-            - **24/7 Watchdog Shield & Auto-Resurrection**: Automatically resurrects the service if swiped away from recent apps or killed by aggressive OEM task managers.
-            - **Real-Time App Feed**: Every received SMS is displayed in the app's log with instant visual status (`[MATCHED]`, `[RECEIVED]`, `[IGNORED]`, `[FAILED]`).
+            **What's New in v1.1.4:**
+            - **Self-Updating Engine (OTA)**: OskarSMS now updates itself directly within the app! No need for staff to visit external websites or manually check GitHub.
+            - **Automatic Update Detection**: The app automatically polls `oskarshop.so/api/apk/update` (with seamless GitHub fallback) on launch and in the background.
+            - **Full-Screen Dismissible Update Screen**: Shows version comparison (`v1.1.3 ➔ v1.1.4`), what's new, and download progress in real time. Can be dismissed at any time.
+            - **Direct Package Installer via FileProvider**: Streams the APK directly with a live percentage bar, verifies integrity, and immediately prompts the system package installer.
+            - **Install Unknown Sources Assistant**: One-tap quick setting button to grant the install permission if not already enabled.
+            - **Zero Review / No Admin Approval Required**: Designed exclusively for internal staff to stay updated with 1 tap.
+            - **Dual-Capture & Order Alerts**: All 24/7 SMS capture (BroadcastReceiver + SQLite ContentObserver) and order notification features active and preserved.
 
             **Installation:**
-            1. Download `OskarSMS-v1.1.3-release.apk` below directly onto your Android phone.
-            2. Tap **Install** (or update).
-            3. Grant Full Access permissions, allow Unrestricted Battery, and lock the app in Recent Apps.
+            1. Existing users on v1.1.3 or earlier can tap **Update** directly in the app or install `OskarSMS-v1.1.4-release.apk` below.
+            2. Grant "Install unknown apps" permission when prompted.
+            3. Tap **Install** to complete the instant upgrade.
           files: |
-            release-output/OskarSMS-v1.1.3-release.apk
+            release-output/OskarSMS-v1.1.4-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false

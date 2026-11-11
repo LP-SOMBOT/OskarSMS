@@ -37,6 +37,8 @@ import so.oskarshop.sms.network.OskarApiClient;
 import so.oskarshop.sms.receiver.WatchdogReceiver;
 import so.oskarshop.sms.storage.SmsLogStorage;
 import so.oskarshop.sms.storage.SmsSettings;
+import so.oskarshop.sms.update.AppUpdateManager;
+import so.oskarshop.sms.update.UpdateInfo;
 import so.oskarshop.sms.util.SmsInboxTracker;
 
 /**
@@ -52,6 +54,8 @@ public class SmsForwarderService extends Service {
     private static final String CHANNEL_ID = "oskar_sms_foreground_channel";
     private static final String PAYMENT_CHANNEL_ID = "oskar_sms_payment_channel";
     public static final String ORDERS_CHANNEL_ID = "oskar_new_orders_channel";
+    public static final String UPDATE_CHANNEL_ID = "oskar_app_updates_channel";
+    private static final int UPDATE_NOTIFICATION_ID = 9002;
 
     public static final String ACTION_START_LISTENING = "so.oskarshop.sms.START_LISTENING";
     public static final String ACTION_FORWARD_SMS = "so.oskarshop.sms.FORWARD_SMS";
@@ -174,13 +178,16 @@ public class SmsForwarderService extends Service {
             settings.setLastCheckedOrderTime(System.currentTimeMillis() - 30000);
         }
 
-        pollerExecutor = Executors.newScheduledThreadPool(2);
+        pollerExecutor = Executors.newScheduledThreadPool(3);
 
         // 1. Order alert poller: checks every 6 seconds
         pollerExecutor.scheduleWithFixedDelay(this::pollOrdersWorker, 2, 6, TimeUnit.SECONDS);
 
         // 2. Fail-safe inbox sweep poller: checks every 10 seconds for any missed SMS
         pollerExecutor.scheduleWithFixedDelay(this::scanAndForwardInboxMessages, 4, 10, TimeUnit.SECONDS);
+
+        // 3. In-App update poller: checks every 60 minutes for new APK releases
+        pollerExecutor.scheduleWithFixedDelay(this::checkForAppUpdatesWorker, 1, 60, TimeUnit.MINUTES);
     }
 
     /**
@@ -351,6 +358,18 @@ public class SmsForwarderService extends Service {
                 ordersChannel.setSound(soundUri, audioAttributes);
 
                 nm.createNotificationChannel(ordersChannel);
+
+                // 4. App Update alerts channel (high priority, heads-up)
+                NotificationChannel updateChannel = new NotificationChannel(
+                    UPDATE_CHANNEL_ID,
+                    "App Updates (Cusbooneysiin)",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                updateChannel.setDescription("Alerts when a new version of OskarSMS is released");
+                updateChannel.enableLights(true);
+                updateChannel.setLightColor(Color.MAGENTA);
+                updateChannel.enableVibration(true);
+                nm.createNotificationChannel(updateChannel);
             }
         }
     }
@@ -448,6 +467,58 @@ public class SmsForwarderService extends Service {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) {
             nm.notify((int) (System.currentTimeMillis() % 100000), builder.build());
+        }
+    }
+
+    private void checkForAppUpdatesWorker() {
+        try {
+            AppUpdateManager.getInstance(this).checkForUpdate(new AppUpdateManager.CheckCallback() {
+                @Override
+                public void onUpdateAvailable(UpdateInfo info) {
+                    Log.i(TAG, "Background update check detected new version: v" + info.getVersionName());
+                    showUpdateNotification(info);
+                }
+
+                @Override
+                public void onNoUpdate() {
+                    Log.d(TAG, "Background update check: up to date.");
+                }
+
+                @Override
+                public void onError(String message) {
+                    Log.d(TAG, "Background update check skipped/failed: " + message);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error in checkForAppUpdatesWorker: " + e.getMessage());
+        }
+    }
+
+    private void showUpdateNotification(UpdateInfo info) {
+        Intent appIntent = new Intent(this, MainActivity.class);
+        appIntent.putExtra("extra_open_update", true);
+        PendingIntent appPendingIntent = PendingIntent.getActivity(
+            this,
+            9001,
+            appIntent,
+            PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        Bitmap oskarLogo = BitmapFactory.decodeResource(getResources(), R.drawable.ic_oskar_logo);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, UPDATE_CHANNEL_ID)
+            .setContentTitle("🚀 OskarSMS v" + info.getVersionName() + " Update Available!")
+            .setContentText("Cusbooneysiin cusub ayaa diyaar ah. Taabo si aad toos ugu shubato.")
+            .setStyle(new NotificationCompat.BigTextStyle().bigText("Nooc cusub oo OskarSMS ah (v" + info.getVersionName() + ") ayaa diyaar ah.\nTaabo si aad toos ugu soo degsato una shubato adigoon browser furin."))
+            .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(oskarLogo)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(appPendingIntent)
+            .setAutoCancel(true);
+
+        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm != null) {
+            nm.notify(UPDATE_NOTIFICATION_ID, builder.build());
         }
     }
 

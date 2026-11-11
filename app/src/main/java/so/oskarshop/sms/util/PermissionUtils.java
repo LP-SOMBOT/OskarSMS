@@ -59,6 +59,25 @@ public class PermissionUtils {
         }
     }
 
+    public static boolean canRequestPackageInstalls(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return context.getPackageManager().canRequestPackageInstalls();
+        }
+        return true;
+    }
+
+    public static void requestInstallPermission(android.app.Activity activity, int requestCode) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                intent.setData(Uri.parse("package:" + activity.getPackageName()));
+                activity.startActivityForResult(intent, requestCode);
+            } catch (Exception e) {
+                openAppDetailsSettings(activity);
+            }
+        }
+    }
+
     public static void openAppDetailsSettings(Context context) {
         try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);

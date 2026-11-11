@@ -17,6 +17,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -31,6 +32,9 @@ import so.oskarshop.sms.network.OskarApiClient;
 import so.oskarshop.sms.service.SmsForwarderService;
 import so.oskarshop.sms.storage.SmsLogStorage;
 import so.oskarshop.sms.storage.SmsSettings;
+import so.oskarshop.sms.update.AppUpdateDialog;
+import so.oskarshop.sms.update.AppUpdateManager;
+import so.oskarshop.sms.update.UpdateInfo;
 import so.oskarshop.sms.util.PermissionUtils;
 
 public class MainActivity extends AppCompatActivity {
@@ -42,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private OskarApiClient apiClient;
 
     private TextView tvMainStatus;
+    private TextView tvAppVersion;
     private MaterialSwitch switchEnable;
     private MaterialSwitch switchOrderNotif;
     private TextView tvTotalForwarded;
@@ -50,6 +55,9 @@ public class MainActivity extends AppCompatActivity {
     private Button btnTestOrderAlert;
     private Button btnSmsPermission;
     private Button btnBatteryOptimization;
+    private Button btnInstallPermission;
+    private Button btnCheckUpdate;
+    private TextView tvUpdateStatusText;
     private Button btnPingServer;
     private TextView tvEndpointUrl;
     private TextView tvEmptyState;
@@ -57,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private LogAdapter adapter;
     private final List<SmsLogEntry> logList = new ArrayList<>();
 
+    private UpdateInfo availableUpdate = null;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
@@ -85,10 +94,18 @@ public class MainActivity extends AppCompatActivity {
             SmsForwarderService.startListening(this);
             so.oskarshop.sms.receiver.WatchdogReceiver.scheduleWatchdog(this);
         }
+
+        // Check for updates on startup (immediate if launched from notification, else silent after 1.2s)
+        if (getIntent() != null && getIntent().getBooleanExtra("extra_open_update", false)) {
+            mainHandler.postDelayed(() -> manualCheckForUpdates(false), 300);
+        } else {
+            mainHandler.postDelayed(this::checkForUpdatesSilently, 1200);
+        }
     }
 
     private void initViews() {
         tvMainStatus = findViewById(R.id.tvMainStatus);
+        tvAppVersion = findViewById(R.id.tvAppVersion);
         switchEnable = findViewById(R.id.switchEnable);
         switchOrderNotif = findViewById(R.id.switchOrderNotif);
         tvTotalForwarded = findViewById(R.id.tvTotalForwarded);
@@ -97,6 +114,9 @@ public class MainActivity extends AppCompatActivity {
         btnTestOrderAlert = findViewById(R.id.btnTestOrderAlert);
         btnSmsPermission = findViewById(R.id.btnSmsPermission);
         btnBatteryOptimization = findViewById(R.id.btnBatteryOptimization);
+        btnInstallPermission = findViewById(R.id.btnInstallPermission);
+        btnCheckUpdate = findViewById(R.id.btnCheckUpdate);
+        tvUpdateStatusText = findViewById(R.id.tvUpdateStatusText);
         btnPingServer = findViewById(R.id.btnPingServer);
         tvEndpointUrl = findViewById(R.id.tvEndpointUrl);
         tvEmptyState = findViewById(R.id.tvEmptyState);
@@ -110,6 +130,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         tvEndpointUrl.setText(settings.getServerUrl().replace("https://", ""));
+        tvAppVersion.setText("v" + AppUpdateManager.getInstance(this).getCurrentVersionName());
+        tvAppVersion.setOnClickListener(v -> manualCheckForUpdates(true));
 
         // Setup Master Switch
         switchEnable.setChecked(settings.isEnabled());
@@ -142,6 +164,10 @@ public class MainActivity extends AppCompatActivity {
         // Permission buttons
         btnSmsPermission.setOnClickListener(v -> requestSmsPermissions());
         btnBatteryOptimization.setOnClickListener(v -> PermissionUtils.requestIgnoreBatteryOptimizations(this));
+        btnInstallPermission.setOnClickListener(v -> PermissionUtils.requestInstallPermission(this, AppUpdateDialog.REQ_INSTALL_PERM));
+
+        // In-App Update buttons
+        btnCheckUpdate.setOnClickListener(v -> manualCheckForUpdates(true));
 
         // Ping button
         btnPingServer.setOnClickListener(v -> testServerConnection());
@@ -187,12 +213,96 @@ public class MainActivity extends AppCompatActivity {
             btnBatteryOptimization.setEnabled(true);
         }
 
+        // Install Unknown Sources Permission
+        if (PermissionUtils.canRequestPackageInstalls(this)) {
+            btnInstallPermission.setText("Granted ✅");
+            btnInstallPermission.setTextColor(ContextCompat.getColor(this, R.color.emerald));
+            btnInstallPermission.setEnabled(false);
+        } else {
+            btnInstallPermission.setText("Grant Permission ⚙️");
+            btnInstallPermission.setTextColor(ContextCompat.getColor(this, R.color.amber));
+            btnInstallPermission.setEnabled(true);
+        }
+
         // Notifications for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (!PermissionUtils.hasNotificationPermission(this)) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, PERMISSION_REQ_NOTIF);
             }
         }
+    }
+
+    private void checkForUpdatesSilently() {
+        AppUpdateManager.getInstance(this).checkForUpdate(new AppUpdateManager.CheckCallback() {
+            @Override
+            public void onUpdateAvailable(UpdateInfo info) {
+                availableUpdate = info;
+                tvAppVersion.setText("v" + info.getVersionName() + " 🚀 UPDATE");
+                tvAppVersion.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
+                btnCheckUpdate.setText("Update 🚀");
+                tvUpdateStatusText.setText("New version v" + info.getVersionName() + " ready!");
+                tvUpdateStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
+
+                // Show full-screen dismissible dialog automatically
+                AppUpdateDialog.showUpdate(getSupportFragmentManager(), info);
+            }
+
+            @Override
+            public void onNoUpdate() {
+                tvUpdateStatusText.setText("Up to date ✅ (v" + AppUpdateManager.getInstance(MainActivity.this).getCurrentVersionName() + ")");
+            }
+
+            @Override
+            public void onError(String message) {
+                // Silent on startup
+            }
+        });
+    }
+
+    private void manualCheckForUpdates(boolean showToastIfUpToDate) {
+        if (availableUpdate != null) {
+            AppUpdateDialog.showUpdate(getSupportFragmentManager(), availableUpdate);
+            return;
+        }
+
+        btnCheckUpdate.setEnabled(false);
+        btnCheckUpdate.setText("Checking...");
+        tvUpdateStatusText.setText("Checking for updates...");
+
+        AppUpdateManager.getInstance(this).checkForUpdate(new AppUpdateManager.CheckCallback() {
+            @Override
+            public void onUpdateAvailable(UpdateInfo info) {
+                availableUpdate = info;
+                btnCheckUpdate.setEnabled(true);
+                btnCheckUpdate.setText("Update 🚀");
+                tvAppVersion.setText("v" + info.getVersionName() + " 🚀");
+                tvAppVersion.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
+                tvUpdateStatusText.setText("New version v" + info.getVersionName() + " ready!");
+                tvUpdateStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
+
+                AppUpdateDialog.showUpdate(getSupportFragmentManager(), info);
+            }
+
+            @Override
+            public void onNoUpdate() {
+                btnCheckUpdate.setEnabled(true);
+                btnCheckUpdate.setText("Check 🚀");
+                tvUpdateStatusText.setText("Up to date ✅ (v" + AppUpdateManager.getInstance(MainActivity.this).getCurrentVersionName() + ")");
+                if (showToastIfUpToDate) {
+                    Toast.makeText(MainActivity.this, "OskarSMS is up to date! ✅", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                btnCheckUpdate.setEnabled(true);
+                btnCheckUpdate.setText("Retry ⚠️");
+                tvUpdateStatusText.setText("Could not reach update server");
+                if (showToastIfUpToDate) {
+                    Toast.makeText(MainActivity.this, "Check failed: " + message, Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 
     private void requestSmsPermissions() {
@@ -243,6 +353,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null && intent.getBooleanExtra("extra_open_update", false)) {
+            manualCheckForUpdates(false);
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         checkPermissionsAndPrompts();
@@ -265,6 +384,18 @@ public class MainActivity extends AppCompatActivity {
         try {
             unregisterReceiver(updateReceiver);
         } catch (Exception ignored) {}
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        checkPermissionsAndPrompts();
+        if (requestCode == AppUpdateDialog.REQ_INSTALL_PERM) {
+            AppUpdateDialog dialog = (AppUpdateDialog) getSupportFragmentManager().findFragmentByTag(AppUpdateDialog.TAG);
+            if (dialog != null && dialog.isVisible()) {
+                dialog.onPermissionGrantedResume();
+            }
+        }
     }
 
     @Override
