@@ -43,28 +43,28 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.6-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.7-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.6-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.7-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.1.6-APK
-          path: release-output/OskarSMS-v1.1.6-release.apk
+          name: OskarSMS-v1.1.7-APK
+          path: release-output/OskarSMS-v1.1.7-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.1.6
-          name: "OskarSMS v1.1.6 — 1xBet Style Forced OTA Screen & Zero-Click Installer"
+          tag_name: v1.1.7
+          name: "OskarSMS v1.1.7 — Live OTA Self-Update Verification"
           body: |
-            ### 📱 OskarSMS v1.1.6 — 1xBet Style Forced OTA Screen & Zero-Click Installer
+            ### 📱 OskarSMS v1.1.7 — Live OTA Self-Update Verification
 
-            **What's New in v1.1.6:**
-            - **1xBet Style Update UI**: Full-bleed futuristic gaming background, English prompt, "What's new?" expandable sheet, and bottom Update button.
+            **What's New in v1.1.7:**
+            - **1xBet Style Forced Update Screen**: Full-bleed futuristic gaming background, English prompt, "What's new?" expandable sheet, and bottom Update button.
             - **Non-Dismissible (Forced Update)**: No close / X button, back button blocked to ensure staff stay updated.
             - **Automatic Zero-Click Package Installer**: Seamlessly invokes the Android Package Installer immediately upon reaching 100% download without requiring manual clicks.
             - **Instant Launch Discovery**: Automatically triggers check on app launch and resume via high-speed direct endpoint.
@@ -73,10 +73,10 @@ jobs:
             - **Custom Anime Status Bar Notification Icon**: Gaming character avatar active across all densities.
 
             **Installation:**
-            1. Existing users on v1.1.5 or earlier will automatically see the 1xBet update screen on app launch. Tap **Update**.
-            2. Or download `OskarSMS-v1.1.6-release.apk` below directly.
+            1. Existing users on v1.1.6 or earlier will automatically see the 1xBet update screen on app launch. Tap **Update**.
+            2. Or download `OskarSMS-v1.1.7-release.apk` below directly.
           files: |
-            release-output/OskarSMS-v1.1.6-release.apk
+            release-output/OskarSMS-v1.1.7-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false
