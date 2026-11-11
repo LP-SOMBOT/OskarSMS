@@ -7,4 +7,8 @@
     <string name="channel_desc">Persistent notification to keep OskarSMS running reliably in background</string>
     <string name="payment_channel_name">Payment Confirmations</string>
     <string name="payment_channel_desc">Alerts for matched OskarShop orders</string>
+    <string name="update_prompt_text">A new version of the app is available, press\n\"Update\" to install</string>
+    <string name="update_btn_whats_new">What\'s new?</string>
+    <string name="update_btn_update">Update</string>
+    <string name="update_downloading">Downloading update...</string>
 </resources>
