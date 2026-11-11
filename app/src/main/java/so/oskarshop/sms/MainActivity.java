@@ -55,9 +55,6 @@ public class MainActivity extends AppCompatActivity {
     private Button btnTestOrderAlert;
     private Button btnSmsPermission;
     private Button btnBatteryOptimization;
-    private Button btnInstallPermission;
-    private Button btnCheckUpdate;
-    private TextView tvUpdateStatusText;
     private Button btnPingServer;
     private TextView tvEndpointUrl;
     private TextView tvEmptyState;
@@ -95,12 +92,8 @@ public class MainActivity extends AppCompatActivity {
             so.oskarshop.sms.receiver.WatchdogReceiver.scheduleWatchdog(this);
         }
 
-        // Check for updates on startup (immediate if launched from notification, else silent after 1.2s)
-        if (getIntent() != null && getIntent().getBooleanExtra("extra_open_update", false)) {
-            mainHandler.postDelayed(() -> manualCheckForUpdates(false), 300);
-        } else {
-            mainHandler.postDelayed(this::checkForUpdatesSilently, 1200);
-        }
+        // Instantly check for updates on startup without manual action
+        checkForUpdatesInstantly();
     }
 
     private void initViews() {
@@ -114,9 +107,6 @@ public class MainActivity extends AppCompatActivity {
         btnTestOrderAlert = findViewById(R.id.btnTestOrderAlert);
         btnSmsPermission = findViewById(R.id.btnSmsPermission);
         btnBatteryOptimization = findViewById(R.id.btnBatteryOptimization);
-        btnInstallPermission = findViewById(R.id.btnInstallPermission);
-        btnCheckUpdate = findViewById(R.id.btnCheckUpdate);
-        tvUpdateStatusText = findViewById(R.id.tvUpdateStatusText);
         btnPingServer = findViewById(R.id.btnPingServer);
         tvEndpointUrl = findViewById(R.id.tvEndpointUrl);
         tvEmptyState = findViewById(R.id.tvEmptyState);
@@ -131,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
 
         tvEndpointUrl.setText(settings.getServerUrl().replace("https://", ""));
         tvAppVersion.setText("v" + AppUpdateManager.getInstance(this).getCurrentVersionName());
-        tvAppVersion.setOnClickListener(v -> manualCheckForUpdates(true));
+        tvAppVersion.setOnClickListener(v -> checkForUpdatesInstantly());
 
         // Setup Master Switch
         switchEnable.setChecked(settings.isEnabled());
@@ -164,10 +154,6 @@ public class MainActivity extends AppCompatActivity {
         // Permission buttons
         btnSmsPermission.setOnClickListener(v -> requestSmsPermissions());
         btnBatteryOptimization.setOnClickListener(v -> PermissionUtils.requestIgnoreBatteryOptimizations(this));
-        btnInstallPermission.setOnClickListener(v -> PermissionUtils.requestInstallPermission(this, AppUpdateDialog.REQ_INSTALL_PERM));
-
-        // In-App Update buttons
-        btnCheckUpdate.setOnClickListener(v -> manualCheckForUpdates(true));
 
         // Ping button
         btnPingServer.setOnClickListener(v -> testServerConnection());
@@ -213,17 +199,6 @@ public class MainActivity extends AppCompatActivity {
             btnBatteryOptimization.setEnabled(true);
         }
 
-        // Install Unknown Sources Permission
-        if (PermissionUtils.canRequestPackageInstalls(this)) {
-            btnInstallPermission.setText("Granted ✅");
-            btnInstallPermission.setTextColor(ContextCompat.getColor(this, R.color.emerald));
-            btnInstallPermission.setEnabled(false);
-        } else {
-            btnInstallPermission.setText("Grant Permission ⚙️");
-            btnInstallPermission.setTextColor(ContextCompat.getColor(this, R.color.amber));
-            btnInstallPermission.setEnabled(true);
-        }
-
         // Notifications for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (!PermissionUtils.hasNotificationPermission(this)) {
@@ -232,75 +207,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void checkForUpdatesSilently() {
+    private void checkForUpdatesInstantly() {
         AppUpdateManager.getInstance(this).checkForUpdate(new AppUpdateManager.CheckCallback() {
             @Override
             public void onUpdateAvailable(UpdateInfo info) {
                 availableUpdate = info;
-                tvAppVersion.setText("v" + info.getVersionName() + " 🚀 UPDATE");
-                tvAppVersion.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
-                btnCheckUpdate.setText("Update 🚀");
-                tvUpdateStatusText.setText("New version v" + info.getVersionName() + " ready!");
-                tvUpdateStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
-
-                // Show full-screen dismissible dialog automatically
-                AppUpdateDialog.showUpdate(getSupportFragmentManager(), info);
-            }
-
-            @Override
-            public void onNoUpdate() {
-                tvUpdateStatusText.setText("Up to date ✅ (v" + AppUpdateManager.getInstance(MainActivity.this).getCurrentVersionName() + ")");
-            }
-
-            @Override
-            public void onError(String message) {
-                // Silent on startup
-            }
-        });
-    }
-
-    private void manualCheckForUpdates(boolean showToastIfUpToDate) {
-        if (availableUpdate != null) {
-            AppUpdateDialog.showUpdate(getSupportFragmentManager(), availableUpdate);
-            return;
-        }
-
-        btnCheckUpdate.setEnabled(false);
-        btnCheckUpdate.setText("Checking...");
-        tvUpdateStatusText.setText("Checking for updates...");
-
-        AppUpdateManager.getInstance(this).checkForUpdate(new AppUpdateManager.CheckCallback() {
-            @Override
-            public void onUpdateAvailable(UpdateInfo info) {
-                availableUpdate = info;
-                btnCheckUpdate.setEnabled(true);
-                btnCheckUpdate.setText("Update 🚀");
                 tvAppVersion.setText("v" + info.getVersionName() + " 🚀");
                 tvAppVersion.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
-                tvUpdateStatusText.setText("New version v" + info.getVersionName() + " ready!");
-                tvUpdateStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
 
+                // Immediately pop up the full-screen non-dismissible update screen
                 AppUpdateDialog.showUpdate(getSupportFragmentManager(), info);
             }
 
             @Override
             public void onNoUpdate() {
-                btnCheckUpdate.setEnabled(true);
-                btnCheckUpdate.setText("Check 🚀");
-                tvUpdateStatusText.setText("Up to date ✅ (v" + AppUpdateManager.getInstance(MainActivity.this).getCurrentVersionName() + ")");
-                if (showToastIfUpToDate) {
-                    Toast.makeText(MainActivity.this, "OskarSMS is up to date! ✅", Toast.LENGTH_SHORT).show();
-                }
+                // Already latest version
             }
 
             @Override
             public void onError(String message) {
-                btnCheckUpdate.setEnabled(true);
-                btnCheckUpdate.setText("Retry ⚠️");
-                tvUpdateStatusText.setText("Could not reach update server");
-                if (showToastIfUpToDate) {
-                    Toast.makeText(MainActivity.this, "Check failed: " + message, Toast.LENGTH_LONG).show();
-                }
+                // Silent
             }
         });
     }
@@ -356,9 +282,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (intent != null && intent.getBooleanExtra("extra_open_update", false)) {
-            manualCheckForUpdates(false);
-        }
+        checkForUpdatesInstantly();
     }
 
     @Override
@@ -366,6 +290,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         checkPermissionsAndPrompts();
         refreshLogsAndStats();
+        checkForUpdatesInstantly();
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(SmsForwarderService.ACTION_NEW_LOG);
@@ -393,7 +318,7 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == AppUpdateDialog.REQ_INSTALL_PERM) {
             AppUpdateDialog dialog = (AppUpdateDialog) getSupportFragmentManager().findFragmentByTag(AppUpdateDialog.TAG);
             if (dialog != null && dialog.isVisible()) {
-                dialog.onPermissionGrantedResume();
+                dialog.onPermissionResult();
             }
         }
     }

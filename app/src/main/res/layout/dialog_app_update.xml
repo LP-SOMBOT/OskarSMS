@@ -1,271 +1,206 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="#060A14">
 
-    <ScrollView
+    <!-- 1xBet Full-Screen Background Image -->
+    <ImageView
+        android:id="@+id/ivUpdateBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_update_screen"
+        android:contentDescription="Update background" />
 
+    <!-- Bottom Legibility Scrim Gradient -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="360dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_scrim_bottom" />
+
+    <!-- Bottom Action & Status Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="36dp">
+
+        <!-- What's New Expandable Card (Initially GONE) -->
         <LinearLayout
+            android:id="@+id/layoutChangelogCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="24dp"
-            android:paddingVertical="32dp"
-            android:gravity="center_horizontal">
+            android:background="@drawable/bg_whats_new_card"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone">
 
-            <!-- Top Close/Dismiss Button -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp">
-
-                <TextView
-                    android:id="@+id/tvUpdateBadge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="OTA UPDATE"
-                    android:textColor="@color/primary_light"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_pill_badge"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="5dp"
-                    android:layout_centerVertical="true" />
-
-                <ImageButton
-                    android:id="@+id/btnCloseUpdateDialog"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_alignParentEnd="true"
-                    android:background="@drawable/bg_card"
-                    android:src="@android:drawable/ic_menu_close_clear_cancel"
-                    android:tint="@color/text_secondary"
-                    android:contentDescription="Dismiss update"
-                    android:padding="8dp" />
-            </RelativeLayout>
-
-            <!-- App Logo Icon -->
-            <ImageView
-                android:id="@+id/ivUpdateLogo"
-                android:layout_width="72dp"
-                android:layout_height="72dp"
-                android:src="@drawable/ic_oskar_logo"
-                android:scaleType="fitCenter"
-                android:background="@drawable/bg_card"
-                android:padding="6dp"
-                android:clipToOutline="true"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="16dp"
-                android:contentDescription="OskarSMS Logo" />
-
-            <!-- Title & Subtitle -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Cusbooneysiin Cusub! 🚀"
-                android:textColor="@color/text_primary"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textAlignment="center" />
-
-            <TextView
-                android:id="@+id/tvUpdateSubtitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Nooc cusub oo OskarSMS ah ayaa diyaar ah"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp"
-                android:layout_marginTop="6dp"
-                android:textAlignment="center" />
-
-            <!-- Version Pill Card -->
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:background="@drawable/bg_card"
-                android:padding="14dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="16dp">
-
-                <TextView
-                    android:id="@+id/tvCurrentVersion"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="v1.1.3"
-                    android:textColor="@color/text_muted"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="  ➔  "
-                    android:textColor="@color/primary_light"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvNewVersion"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="v1.1.4"
-                    android:textColor="@color/emerald"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Changelog Card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/surface_card"
-                android:layout_marginBottom="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Waxyaabaha Cusub (What's New):"
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="8dp" />
-
-                    <TextView
-                        android:id="@+id/tvChangelog"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="• In-App Self-Updating Engine\n• Direct install unknown sources flow\n• Real-time download progress bar\n• Background update notifications"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp"
-                        android:lineSpacingExtra="4dp" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Install Permission Status Card -->
-            <LinearLayout
-                android:id="@+id/layoutPermissionNotice"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:background="@drawable/bg_status_active"
-                android:padding="12dp"
-                android:layout_marginBottom="20dp">
+                android:layout_marginBottom="8dp">
 
                 <TextView
-                    android:id="@+id/tvPermissionIcon"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🛡️"
-                    android:textSize="18sp"
-                    android:layout_marginEnd="10dp" />
-
-                <TextView
-                    android:id="@+id/tvPermissionStatus"
+                    android:id="@+id/tvVersionTitle"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Install Source Permission: Ready"
-                    android:textColor="@color/emerald"
-                    android:textSize="12sp"
+                    android:text="What's new in this version:"
+                    android:textColor="#38BDF8"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnCloseChangelog"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="4dp"
+                    android:text="✕"
+                    android:textColor="#94A3B8"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvChangelogContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#E2E8F0"
+                android:textSize="13sp"
+                android:lineSpacingExtra="3dp"
+                android:text="• Performance improvements and bug fixes." />
+        </LinearLayout>
+
+        <!-- Idle / Ready to Update State Container -->
+        <LinearLayout
+            android:id="@+id/layoutIdleState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="visible">
+
+            <!-- 1xBet Header Text -->
+            <TextView
+                android:id="@+id/tvPromptText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="A new version of the app is available, press\n\"Update\" to install"
+                android:textColor="#CBD5E1"
+                android:textSize="15sp"
+                android:gravity="center"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginBottom="24dp" />
+
+            <!-- What's new? Button -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnWhatsNew"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="What's new?"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@drawable/bg_btn_whats_new"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Primary Update Button -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnUpdate"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Update"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@drawable/bg_btn_update_primary" />
+        </LinearLayout>
+
+        <!-- Downloading State Container (Matches 1xBet Screenshot 6) -->
+        <LinearLayout
+            android:id="@+id/layoutDownloadingState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Label and Percentage Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvDownloadingLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Downloading update..."
+                    android:textColor="#CBD5E1"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvDownloadPercent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0%"
+                    android:textColor="#CBD5E1"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Download Progress Container (initially GONE) -->
-            <LinearLayout
-                android:id="@+id/layoutDownloadProgress"
+            <!-- Thin Sleek Horizontal Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBarUpdate"
+                style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone"
-                android:layout_marginBottom="20dp"
-                tools:visibility="visible">
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="6dp">
-
-                    <TextView
-                        android:id="@+id/tvProgressStatus"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Soo dejinaya update-ka..."
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvProgressPercentage"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:text="0%"
-                        android:textColor="@color/primary_light"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-                </RelativeLayout>
-
-                <!-- Modern Progress Bar -->
-                <ProgressBar
-                    android:id="@+id/progressBarUpdate"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="10dp"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressTint="@color/primary"
-                    android:progressBackgroundTint="@color/surface_container" />
-
-                <TextView
-                    android:id="@+id/tvProgressBytes"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0 MB / 0 MB"
-                    android:textColor="@color/text_muted"
-                    android:textSize="11sp"
-                    android:layout_marginTop="4dp" />
-            </LinearLayout>
-
-            <!-- Primary Action Button (Update Now / Install) -->
-            <Button
-                android:id="@+id/btnActionUpdate"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:text="🚀 CUSBOONEYSII HADDA (UPDATE NOW)"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:backgroundTint="@color/primary"
-                app:cornerRadius="14dp"
-                android:layout_marginBottom="12dp" />
-
-            <!-- Dismiss Later Link -->
-            <TextView
-                android:id="@+id/btnDismissUpdate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Dib U Dhig (Later)"
-                android:textColor="@color/text_muted"
-                android:textSize="13sp"
-                android:padding="8dp" />
-
+                android:layout_height="4dp"
+                android:layout_marginTop="10dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/bg_progress_horizontal" />
         </LinearLayout>
-    </ScrollView>
+
+        <!-- Error State Container -->
+        <LinearLayout
+            android:id="@+id/layoutErrorState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvErrorMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Download interrupted. Tap retry to continue."
+                android:textColor="#F87171"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:layout_marginBottom="16dp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnRetry"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Retry"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@drawable/bg_btn_update_primary" />
+        </LinearLayout>
+
+    </LinearLayout>
+
 </FrameLayout>

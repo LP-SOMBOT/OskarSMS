@@ -5,27 +5,34 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
 import java.io.File;
-import java.util.Locale;
 import so.oskarshop.sms.R;
 import so.oskarshop.sms.util.PermissionUtils;
 
+/**
+ * 1xBet-styled full-screen non-dismissible force update screen.
+ * - Full-bleed background image
+ * - English text: "A new version of the app is available, press \"Update\" to install"
+ * - "What's new?" and "Update" buttons
+ * - Sleek horizontal progress bar during download
+ * - Automatically invokes package installer upon download completion (zero manual click required)
+ * - Non-dismissible (no X button, back button blocked)
+ */
 public class AppUpdateDialog extends DialogFragment {
     public static final String TAG = "AppUpdateDialog";
     public static final int REQ_INSTALL_PERM = 3001;
@@ -33,21 +40,23 @@ public class AppUpdateDialog extends DialogFragment {
     private UpdateInfo updateInfo;
     private File downloadedApkFile;
     private boolean isDownloading = false;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private TextView tvCurrentVersion;
-    private TextView tvNewVersion;
-    private TextView tvChangelog;
-    private LinearLayout layoutPermissionNotice;
-    private TextView tvPermissionIcon;
-    private TextView tvPermissionStatus;
-    private LinearLayout layoutDownloadProgress;
-    private TextView tvProgressStatus;
-    private TextView tvProgressPercentage;
+    private LinearLayout layoutIdleState;
+    private LinearLayout layoutDownloadingState;
+    private LinearLayout layoutErrorState;
+    private LinearLayout layoutChangelogCard;
+
+    private TextView tvVersionTitle;
+    private TextView tvChangelogContent;
+    private TextView tvDownloadingLabel;
+    private TextView tvDownloadPercent;
     private ProgressBar progressBarUpdate;
-    private TextView tvProgressBytes;
-    private Button btnActionUpdate;
-    private TextView btnDismissUpdate;
-    private ImageButton btnCloseUpdateDialog;
+    private TextView tvErrorMessage;
+
+    private Button btnWhatsNew;
+    private Button btnUpdate;
+    private Button btnRetry;
 
     public static AppUpdateDialog newInstance(UpdateInfo info) {
         AppUpdateDialog dialog = new AppUpdateDialog();
@@ -56,7 +65,7 @@ public class AppUpdateDialog extends DialogFragment {
     }
 
     public static void showUpdate(FragmentManager fm, UpdateInfo info) {
-        if (fm.findFragmentByTag(TAG) != null) return;
+        if (fm == null || fm.isStateSaved() || fm.findFragmentByTag(TAG) != null) return;
         AppUpdateDialog dialog = newInstance(info);
         dialog.show(fm, TAG);
     }
@@ -64,8 +73,9 @@ public class AppUpdateDialog extends DialogFragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Make it full screen dismissible dialog
+        // Full screen non-dismissible dialog
         setStyle(DialogFragment.STYLE_NORMAL, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        setCancelable(false);
     }
 
     @Nullable
@@ -78,8 +88,14 @@ public class AppUpdateDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         Dialog dialog = super.onCreateDialog(savedInstanceState);
-        dialog.setCanceledOnTouchOutside(true);
-        dialog.setCancelable(true);
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+        
+        // Prevent dismissal on back key press to enforce update
+        dialog.setOnKeyListener((dialogInterface, keyCode, event) -> {
+            return keyCode == KeyEvent.KEYCODE_BACK;
+        });
+
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
@@ -102,89 +118,84 @@ public class AppUpdateDialog extends DialogFragment {
 
         initViews(view);
         populateData();
-        updatePermissionNotice();
     }
 
     private void initViews(View view) {
-        tvCurrentVersion = view.findViewById(R.id.tvCurrentVersion);
-        tvNewVersion = view.findViewById(R.id.tvNewVersion);
-        tvChangelog = view.findViewById(R.id.tvChangelog);
-        layoutPermissionNotice = view.findViewById(R.id.layoutPermissionNotice);
-        tvPermissionIcon = view.findViewById(R.id.tvPermissionIcon);
-        tvPermissionStatus = view.findViewById(R.id.tvPermissionStatus);
-        layoutDownloadProgress = view.findViewById(R.id.layoutDownloadProgress);
-        tvProgressStatus = view.findViewById(R.id.tvProgressStatus);
-        tvProgressPercentage = view.findViewById(R.id.tvProgressPercentage);
+        layoutIdleState = view.findViewById(R.id.layoutIdleState);
+        layoutDownloadingState = view.findViewById(R.id.layoutDownloadingState);
+        layoutErrorState = view.findViewById(R.id.layoutErrorState);
+        layoutChangelogCard = view.findViewById(R.id.layoutChangelogCard);
+
+        tvVersionTitle = view.findViewById(R.id.tvVersionTitle);
+        tvChangelogContent = view.findViewById(R.id.tvChangelogContent);
+        tvDownloadingLabel = view.findViewById(R.id.tvDownloadingLabel);
+        tvDownloadPercent = view.findViewById(R.id.tvDownloadPercent);
         progressBarUpdate = view.findViewById(R.id.progressBarUpdate);
-        tvProgressBytes = view.findViewById(R.id.tvProgressBytes);
-        btnActionUpdate = view.findViewById(R.id.btnActionUpdate);
-        btnDismissUpdate = view.findViewById(R.id.btnDismissUpdate);
-        btnCloseUpdateDialog = view.findViewById(R.id.btnCloseUpdateDialog);
+        tvErrorMessage = view.findViewById(R.id.tvErrorMessage);
 
-        btnCloseUpdateDialog.setOnClickListener(v -> dismiss());
-        btnDismissUpdate.setOnClickListener(v -> dismiss());
+        btnWhatsNew = view.findViewById(R.id.btnWhatsNew);
+        btnUpdate = view.findViewById(R.id.btnUpdate);
+        btnRetry = view.findViewById(R.id.btnRetry);
+        TextView btnCloseChangelog = view.findViewById(R.id.btnCloseChangelog);
 
-        btnActionUpdate.setOnClickListener(v -> handleActionButtonClick());
+        btnWhatsNew.setOnClickListener(v -> {
+            if (layoutChangelogCard.getVisibility() == View.VISIBLE) {
+                layoutChangelogCard.setVisibility(View.GONE);
+            } else {
+                layoutChangelogCard.setVisibility(View.VISIBLE);
+            }
+        });
+
+        if (btnCloseChangelog != null) {
+            btnCloseChangelog.setOnClickListener(v -> layoutChangelogCard.setVisibility(View.GONE));
+        }
+
+        btnUpdate.setOnClickListener(v -> handleUpdateClick());
+        btnRetry.setOnClickListener(v -> handleUpdateClick());
     }
 
     private void populateData() {
-        Context ctx = getContext();
-        if (ctx == null || updateInfo == null) return;
+        if (updateInfo == null) return;
 
-        AppUpdateManager mgr = AppUpdateManager.getInstance(ctx);
-        tvCurrentVersion.setText("v" + mgr.getCurrentVersionName());
-        tvNewVersion.setText("v" + updateInfo.getVersionName());
-
+        tvVersionTitle.setText("What's new in v" + updateInfo.getVersionName() + ":");
         if (updateInfo.getChangelog() != null && !updateInfo.getChangelog().trim().isEmpty()) {
-            tvChangelog.setText(updateInfo.getChangelog());
+            tvChangelogContent.setText(updateInfo.getChangelog());
         }
     }
 
-    public void updatePermissionNotice() {
-        Context ctx = getContext();
-        if (ctx == null) return;
-
-        boolean canInstall = PermissionUtils.canRequestPackageInstalls(ctx);
-        if (canInstall) {
-            layoutPermissionNotice.setBackgroundResource(R.drawable.bg_status_active);
-            tvPermissionIcon.setText("✅");
-            tvPermissionStatus.setText("Install Unknown Sources: Permission Granted");
-            tvPermissionStatus.setTextColor(ContextCompat.getColor(ctx, R.color.emerald));
-        } else {
-            layoutPermissionNotice.setBackgroundResource(R.drawable.bg_status_inactive);
-            tvPermissionIcon.setText("⚙️");
-            tvPermissionStatus.setText("Install Sources: Tap Update to Grant");
-            tvPermissionStatus.setTextColor(ContextCompat.getColor(ctx, R.color.amber));
-        }
-    }
-
-    private void handleActionButtonClick() {
+    private void handleUpdateClick() {
         Context ctx = getContext();
         if (ctx == null || getActivity() == null || updateInfo == null) return;
 
-        // Case 1: APK already downloaded -> launch install immediately
+        // If file already exists and valid, trigger package installer immediately
         if (downloadedApkFile != null && downloadedApkFile.exists() && downloadedApkFile.length() > 100 * 1024) {
             triggerInstallation(downloadedApkFile);
             return;
         }
 
-        // Case 2: Check install sources permission first
+        // Check Unknown Sources Permission: trigger request on click
         if (!PermissionUtils.canRequestPackageInstalls(ctx)) {
-            Toast.makeText(ctx, "Fadlan oggolow 'Install unknown apps' si update-ka loo rakibo", Toast.LENGTH_LONG).show();
+            Toast.makeText(ctx, "Please allow 'Install unknown apps' to install the update", Toast.LENGTH_SHORT).show();
             PermissionUtils.requestInstallPermission(getActivity(), REQ_INSTALL_PERM);
             return;
         }
 
-        // Case 3: Start Download
         startDownload();
     }
 
-    public void onPermissionGrantedResume() {
-        updatePermissionNotice();
-        if (downloadedApkFile != null && downloadedApkFile.exists()) {
-            triggerInstallation(downloadedApkFile);
-        } else if (!isDownloading) {
-            startDownload();
+    /**
+     * Called when returning from System Settings after granting install permission
+     */
+    public void onPermissionResult() {
+        Context ctx = getContext();
+        if (ctx == null) return;
+
+        if (PermissionUtils.canRequestPackageInstalls(ctx)) {
+            if (downloadedApkFile != null && downloadedApkFile.exists()) {
+                triggerInstallation(downloadedApkFile);
+            } else if (!isDownloading) {
+                startDownload();
+            }
         }
     }
 
@@ -193,10 +204,16 @@ public class AppUpdateDialog extends DialogFragment {
         if (ctx == null || updateInfo == null) return;
 
         isDownloading = true;
-        layoutDownloadProgress.setVisibility(View.VISIBLE);
-        btnActionUpdate.setEnabled(false);
-        btnActionUpdate.setText("SOO DEJINAYA UPDATE-KA... ⏳");
-        btnDismissUpdate.setVisibility(View.GONE);
+
+        // Transition UI to 1xBet download state
+        layoutIdleState.setVisibility(View.GONE);
+        layoutChangelogCard.setVisibility(View.GONE);
+        layoutErrorState.setVisibility(View.GONE);
+        layoutDownloadingState.setVisibility(View.VISIBLE);
+
+        tvDownloadingLabel.setText("Downloading update...");
+        tvDownloadPercent.setText("0%");
+        progressBarUpdate.setProgress(0);
 
         AppUpdateManager.getInstance(ctx).downloadUpdate(updateInfo, new AppUpdateManager.DownloadCallback() {
             @Override
@@ -205,16 +222,8 @@ public class AppUpdateDialog extends DialogFragment {
 
                 if (percentage >= 0) {
                     progressBarUpdate.setProgress(percentage);
-                    tvProgressPercentage.setText(percentage + "%");
+                    tvDownloadPercent.setText(percentage + "%");
                 }
-
-                String mbDownloaded = String.format(Locale.US, "%.1f MB", bytesDownloaded / (1024.0 * 1024.0));
-                String mbTotal = totalBytes > 0 
-                    ? String.format(Locale.US, "%.1f MB", totalBytes / (1024.0 * 1024.0))
-                    : "...";
-
-                tvProgressBytes.setText(mbDownloaded + " / " + mbTotal);
-                tvProgressStatus.setText("Soo dejinaya update-ka...");
             }
 
             @Override
@@ -224,31 +233,31 @@ public class AppUpdateDialog extends DialogFragment {
                 downloadedApkFile = apkFile;
 
                 progressBarUpdate.setProgress(100);
-                tvProgressPercentage.setText("100%");
-                tvProgressStatus.setText("Soo dejintu way dhammaatay! ✅");
-                btnActionUpdate.setEnabled(true);
-                btnActionUpdate.setText("📦 BILOW XIRITAANKA (INSTALL NOW)");
-                btnActionUpdate.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.emerald));
+                tvDownloadPercent.setText("100%");
+                tvDownloadingLabel.setText("Installing update...");
 
-                // Automatically trigger installation progress
-                triggerInstallation(apkFile);
+                // Automatically and seamlessly launch the package installer
+                mainHandler.postDelayed(() -> {
+                    if (isAdded()) {
+                        triggerInstallation(apkFile);
+                    }
+                }, 200);
             }
 
             @Override
             public void onError(String message) {
                 if (!isAdded()) return;
                 isDownloading = false;
-                layoutDownloadProgress.setVisibility(View.GONE);
-                btnActionUpdate.setEnabled(true);
-                btnActionUpdate.setText("🚀 CUSBOONEYSII HADDA (RETRY)");
-                btnDismissUpdate.setVisibility(View.VISIBLE);
-                Toast.makeText(requireContext(), "Khalad: " + message, Toast.LENGTH_LONG).show();
+
+                layoutDownloadingState.setVisibility(View.GONE);
+                layoutErrorState.setVisibility(View.VISIBLE);
+                tvErrorMessage.setText("Download failed: " + message);
             }
         });
     }
 
     private void triggerInstallation(File apkFile) {
-        if (getActivity() == null) return;
+        if (getActivity() == null || getContext() == null) return;
         AppUpdateManager.getInstance(requireContext()).installApk(getActivity(), apkFile, REQ_INSTALL_PERM);
     }
 }

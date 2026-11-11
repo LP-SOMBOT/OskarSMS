@@ -32,7 +32,8 @@ import so.oskarshop.sms.util.PermissionUtils;
 public class AppUpdateManager {
     private static final String TAG = "AppUpdateManager";
 
-    public static final String PRIMARY_UPDATE_URL = "https://oskarshop.so/api/apk/update";
+    public static final String PRIMARY_UPDATE_URL = "https://www.oskarshop.so/api/apk/update";
+    public static final String SECONDARY_UPDATE_URL = "https://oskarshop.so/api/apk/update";
     public static final String FALLBACK_GITHUB_API = "https://api.github.com/repos/LP-SOMBOT/OskarSMS/releases/latest";
 
     private static AppUpdateManager instance;
@@ -125,9 +126,17 @@ public class AppUpdateManager {
     }
 
     private UpdateInfo fetchUpdateFromOskarShop() {
+        UpdateInfo info = fetchUpdateFromUrl(PRIMARY_UPDATE_URL);
+        if (info == null) {
+            info = fetchUpdateFromUrl(SECONDARY_UPDATE_URL);
+        }
+        return info;
+    }
+
+    private UpdateInfo fetchUpdateFromUrl(String url) {
         try {
             Request request = new Request.Builder()
-                .url(PRIMARY_UPDATE_URL)
+                .url(url)
                 .addHeader("User-Agent", "OskarSMS-Android/" + getCurrentVersionName())
                 .get()
                 .build();
@@ -141,18 +150,18 @@ public class AppUpdateManager {
 
                 int code = obj.has("versionCode") ? obj.get("versionCode").getAsInt() : 0;
                 String name = obj.has("versionName") ? obj.get("versionName").getAsString() : "1.0.0";
-                String url = obj.has("apkUrl") ? obj.get("apkUrl").getAsString() : "";
+                String apkUrl = obj.has("apkUrl") ? obj.get("apkUrl").getAsString() : "";
                 String fallback = obj.has("fallbackUrl") ? obj.get("fallbackUrl").getAsString() : "";
                 String notes = obj.has("changelog") ? obj.get("changelog").getAsString() : "New features and stability improvements.";
                 boolean mandatory = obj.has("mandatory") && obj.get("mandatory").getAsBoolean();
                 long date = obj.has("releaseDate") ? obj.get("releaseDate").getAsLong() : System.currentTimeMillis();
 
-                if (code > 0 && !url.isEmpty()) {
-                    return new UpdateInfo(code, name, url, fallback, notes, mandatory, date);
+                if (code > 0 && !apkUrl.isEmpty()) {
+                    return new UpdateInfo(code, name, apkUrl, fallback, notes, mandatory, date);
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "OskarShop update endpoint failed: " + e.getMessage());
+            Log.w(TAG, "Update endpoint " + url + " failed: " + e.getMessage());
         }
         return null;
     }
@@ -343,13 +352,23 @@ public class AppUpdateManager {
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
             // Grant read URI permission to resolving package installer activities
-            List<ResolveInfo> resInfoList = activity.getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
-            for (ResolveInfo resolveInfo : resInfoList) {
-                String packageName = resolveInfo.activityInfo.packageName;
-                activity.grantUriPermission(packageName, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            int matchFlags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PackageManager.MATCH_ALL : PackageManager.MATCH_DEFAULT_ONLY;
+            List<ResolveInfo> resInfoList = activity.getPackageManager().queryIntentActivities(intent, matchFlags);
+            if (resInfoList != null) {
+                for (ResolveInfo resolveInfo : resInfoList) {
+                    if (resolveInfo.activityInfo != null) {
+                        String packageName = resolveInfo.activityInfo.packageName;
+                        activity.grantUriPermission(packageName, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    }
+                }
             }
 
-            activity.startActivity(intent);
+            try {
+                activity.startActivity(intent);
+            } catch (Exception launchEx) {
+                Log.w(TAG, "activity.startActivity failed, trying context.startActivity: " + launchEx.getMessage());
+                context.startActivity(intent);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Error launching package installer", e);
             android.widget.Toast.makeText(activity, "Installation failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
