@@ -43,42 +43,43 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.2-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.3-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.2-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.3-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.1.2-APK
-          path: release-output/OskarSMS-v1.1.2-release.apk
+          name: OskarSMS-v1.1.3-APK
+          path: release-output/OskarSMS-v1.1.3-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.1.2
-          name: "OskarSMS v1.1.2 — 100% All-SMS Capture & Anti-Kill Edition"
+          tag_name: v1.1.3
+          name: "OskarSMS v1.1.3 — 100% All-SMS Capture & Compatible Install"
           body: |
-            ### 📱 OskarSMS v1.1.2 — 100% All-SMS Capture & Anti-Kill Protection
+            ### 📱 OskarSMS v1.1.3 — 100% All-SMS Capture & Compatible Installation
 
-            **What's New in v1.1.2:**
+            **What's New in v1.1.3:**
+            - **Fixed Package Installation**: Removed incompatible `android:persistent` system-only flag that caused Android Package Installer to throw "App not installed" on user devices.
             - **Capture 100% of All SMS Messages**: Removed all device-side filters, keyword restrictions, and sender number checks. Captures every incoming SMS from any number, carrier, or source without dropping anything on the phone.
             - **Dual-Capture Architecture**:
-              1. **High-Priority Broadcast Receiver** (`priority="2147483647"` / max integer priority) for instant SMS reception.
+              1. **High-Priority Broadcast Receiver** (`priority="999"`) for instant SMS reception.
               2. **SQLite Database ContentObserver** listening directly on `content://sms` to catch incoming SMS as soon as Android writes it to the inbox.
               3. **10-Second Inbox Reconciliation Poller** to ensure zero SMS are missed even during deep Doze / sleep mode.
-            - **Full Permissions & Telephony Access**: Full permissions for SMS, MMS, Telephony State, Post Notifications, WakeLock, and battery optimization bypass to prevent interruptions or background kills.
-            - **24/7 Watchdog Shield & Auto-Resurrection**: Automatically resurrects the service if swiped away from recent apps or killed by aggressive OEM task managers (MIUI, OneUI, HiOS, ColorOS).
+            - **Full Permissions & Telephony Access**: Full permissions for SMS, Telephony State, Post Notifications, WakeLock, and battery optimization bypass.
+            - **24/7 Watchdog Shield & Auto-Resurrection**: Automatically resurrects the service if swiped away from recent apps or killed by aggressive OEM task managers.
             - **Real-Time App Feed**: Every received SMS is displayed in the app's log with instant visual status (`[MATCHED]`, `[RECEIVED]`, `[IGNORED]`, `[FAILED]`).
 
             **Installation:**
-            1. Download `OskarSMS-v1.1.2-release.apk` below directly onto your Android phone.
+            1. Download `OskarSMS-v1.1.3-release.apk` below directly onto your Android phone.
             2. Tap **Install** (or update).
             3. Grant Full Access permissions, allow Unrestricted Battery, and lock the app in Recent Apps.
           files: |
-            release-output/OskarSMS-v1.1.2-release.apk
+            release-output/OskarSMS-v1.1.3-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false
