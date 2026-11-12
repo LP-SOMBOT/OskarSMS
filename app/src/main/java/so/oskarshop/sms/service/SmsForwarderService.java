@@ -362,7 +362,7 @@ public class SmsForwarderService extends Service {
                 // 4. App Update alerts channel (high priority, heads-up)
                 NotificationChannel updateChannel = new NotificationChannel(
                     UPDATE_CHANNEL_ID,
-                    "App Updates (Cusbooneysiin)",
+                    "App Updates",
                     NotificationManager.IMPORTANCE_HIGH
                 );
                 updateChannel.setDescription("Alerts when a new version of OskarSMS is released");
@@ -508,8 +508,8 @@ public class SmsForwarderService extends Service {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, UPDATE_CHANNEL_ID)
             .setContentTitle("🚀 OskarSMS v" + info.getVersionName() + " Update Available!")
-            .setContentText("Cusbooneysiin cusub ayaa diyaar ah. Taabo si aad toos ugu shubato.")
-            .setStyle(new NotificationCompat.BigTextStyle().bigText("Nooc cusub oo OskarSMS ah (v" + info.getVersionName() + ") ayaa diyaar ah.\nTaabo si aad toos ugu soo degsato una shubato adigoon browser furin."))
+            .setContentText("Update Now")
+            .setStyle(new NotificationCompat.BigTextStyle().bigText("Update Now"))
             .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(oskarLogo)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
