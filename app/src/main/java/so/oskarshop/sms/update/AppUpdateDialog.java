@@ -21,17 +21,21 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import so.oskarshop.sms.R;
 import so.oskarshop.sms.util.PermissionUtils;
 
 /**
- * 1xBet-styled full-screen non-dismissible force update screen.
- * - Full-bleed background image
- * - English text: "A new version of the app is available, press \"Update\" to install"
- * - "What's new?" and "Update" buttons
+ * Modern Light-themed full-screen non-dismissible force update screen.
+ * - 3D Phone & Rocket Illustration with bottom decorative wave
+ * - App Header Card with v[current] → v[target] badge
+ * - "A new version is available" headline & subtitle
+ * - Clean "What's New?" card with dynamic checkmarked items (1, 3, or more lines)
+ * - Single "Update Now" button (no "Not Now" button)
  * - Sleek horizontal progress bar during download
  * - Automatically invokes package installer upon download completion (zero manual click required)
- * - Non-dismissible (no X button, back button blocked)
+ * - Non-dismissible (back key blocked to enforce mandatory staff update)
  */
 public class AppUpdateDialog extends DialogFragment {
     public static final String TAG = "AppUpdateDialog";
@@ -45,16 +49,14 @@ public class AppUpdateDialog extends DialogFragment {
     private LinearLayout layoutIdleState;
     private LinearLayout layoutDownloadingState;
     private LinearLayout layoutErrorState;
-    private LinearLayout layoutChangelogCard;
+    private LinearLayout llChangelogItems;
 
-    private TextView tvVersionTitle;
-    private TextView tvChangelogContent;
+    private TextView tvVersionBadge;
     private TextView tvDownloadingLabel;
     private TextView tvDownloadPercent;
     private ProgressBar progressBarUpdate;
     private TextView tvErrorMessage;
 
-    private Button btnWhatsNew;
     private Button btnUpdate;
     private Button btnRetry;
 
@@ -74,7 +76,7 @@ public class AppUpdateDialog extends DialogFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Full screen non-dismissible dialog
-        setStyle(DialogFragment.STYLE_NORMAL, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        setStyle(DialogFragment.STYLE_NORMAL, android.R.style.Theme_Light_NoTitleBar_Fullscreen);
         setCancelable(false);
     }
 
@@ -97,7 +99,7 @@ public class AppUpdateDialog extends DialogFragment {
         });
 
         if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.WHITE));
             dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         }
         return dialog;
@@ -124,43 +126,79 @@ public class AppUpdateDialog extends DialogFragment {
         layoutIdleState = view.findViewById(R.id.layoutIdleState);
         layoutDownloadingState = view.findViewById(R.id.layoutDownloadingState);
         layoutErrorState = view.findViewById(R.id.layoutErrorState);
-        layoutChangelogCard = view.findViewById(R.id.layoutChangelogCard);
+        llChangelogItems = view.findViewById(R.id.llChangelogItems);
 
-        tvVersionTitle = view.findViewById(R.id.tvVersionTitle);
-        tvChangelogContent = view.findViewById(R.id.tvChangelogContent);
+        tvVersionBadge = view.findViewById(R.id.tvVersionBadge);
         tvDownloadingLabel = view.findViewById(R.id.tvDownloadingLabel);
         tvDownloadPercent = view.findViewById(R.id.tvDownloadPercent);
         progressBarUpdate = view.findViewById(R.id.progressBarUpdate);
         tvErrorMessage = view.findViewById(R.id.tvErrorMessage);
 
-        btnWhatsNew = view.findViewById(R.id.btnWhatsNew);
         btnUpdate = view.findViewById(R.id.btnUpdate);
         btnRetry = view.findViewById(R.id.btnRetry);
-        TextView btnCloseChangelog = view.findViewById(R.id.btnCloseChangelog);
 
-        btnWhatsNew.setOnClickListener(v -> {
-            if (layoutChangelogCard.getVisibility() == View.VISIBLE) {
-                layoutChangelogCard.setVisibility(View.GONE);
-            } else {
-                layoutChangelogCard.setVisibility(View.VISIBLE);
-            }
-        });
-
-        if (btnCloseChangelog != null) {
-            btnCloseChangelog.setOnClickListener(v -> layoutChangelogCard.setVisibility(View.GONE));
+        if (btnUpdate != null) {
+            btnUpdate.setOnClickListener(v -> handleUpdateClick());
         }
-
-        btnUpdate.setOnClickListener(v -> handleUpdateClick());
-        btnRetry.setOnClickListener(v -> handleUpdateClick());
+        if (btnRetry != null) {
+            btnRetry.setOnClickListener(v -> handleUpdateClick());
+        }
     }
 
     private void populateData() {
         if (updateInfo == null) return;
 
-        tvVersionTitle.setText("What's new in v" + updateInfo.getVersionName() + ":");
-        if (updateInfo.getChangelog() != null && !updateInfo.getChangelog().trim().isEmpty()) {
-            tvChangelogContent.setText(updateInfo.getChangelog());
+        Context ctx = getContext();
+        if (ctx == null) return;
+
+        String currentVer = AppUpdateManager.getInstance(ctx).getCurrentVersionName();
+        if (tvVersionBadge != null) {
+            tvVersionBadge.setText("v" + currentVer + " → v" + updateInfo.getVersionName());
         }
+
+        if (llChangelogItems != null) {
+            llChangelogItems.removeAllViews();
+            List<String> items = parseChangelogLines(updateInfo.getChangelog());
+            LayoutInflater inflater = LayoutInflater.from(ctx);
+
+            for (String itemText : items) {
+                View itemView = inflater.inflate(R.layout.item_update_changelog, llChangelogItems, false);
+                TextView tvItem = itemView.findViewById(R.id.tvChangelogItem);
+                tvItem.setText(itemText);
+                llChangelogItems.addView(itemView);
+            }
+        }
+    }
+
+    /**
+     * Parses clean, short feature update lines. Supports 1, 3, or more lines dynamically.
+     */
+    private List<String> parseChangelogLines(String raw) {
+        List<String> result = new ArrayList<>();
+        if (raw == null || raw.trim().isEmpty()) {
+            result.add("Improved SMS detection & verification");
+            result.add("Faster and more stable performance");
+            result.add("Fixed known issues and crashes");
+            result.add("General improvements and optimizations");
+            return result;
+        }
+
+        String[] lines = raw.split("\n");
+        for (String line : lines) {
+            String trimmed = line.trim();
+            // Remove any bullet prefixes (•, -, *, ✓)
+            while (trimmed.startsWith("•") || trimmed.startsWith("-") || trimmed.startsWith("*") || trimmed.startsWith("✓")) {
+                trimmed = trimmed.substring(1).trim();
+            }
+            if (!trimmed.isEmpty()) {
+                result.add(trimmed);
+            }
+        }
+
+        if (result.isEmpty()) {
+            result.add("General improvements and optimizations");
+        }
+        return result;
     }
 
     private void handleUpdateClick() {
@@ -205,15 +243,14 @@ public class AppUpdateDialog extends DialogFragment {
 
         isDownloading = true;
 
-        // Transition UI to 1xBet download state
-        layoutIdleState.setVisibility(View.GONE);
-        layoutChangelogCard.setVisibility(View.GONE);
-        layoutErrorState.setVisibility(View.GONE);
-        layoutDownloadingState.setVisibility(View.VISIBLE);
+        // Transition UI to download state
+        if (layoutIdleState != null) layoutIdleState.setVisibility(View.GONE);
+        if (layoutErrorState != null) layoutErrorState.setVisibility(View.GONE);
+        if (layoutDownloadingState != null) layoutDownloadingState.setVisibility(View.VISIBLE);
 
-        tvDownloadingLabel.setText("Downloading update...");
-        tvDownloadPercent.setText("0%");
-        progressBarUpdate.setProgress(0);
+        if (tvDownloadingLabel != null) tvDownloadingLabel.setText("Downloading update...");
+        if (tvDownloadPercent != null) tvDownloadPercent.setText("0%");
+        if (progressBarUpdate != null) progressBarUpdate.setProgress(0);
 
         AppUpdateManager.getInstance(ctx).downloadUpdate(updateInfo, new AppUpdateManager.DownloadCallback() {
             @Override
@@ -221,8 +258,8 @@ public class AppUpdateDialog extends DialogFragment {
                 if (!isAdded()) return;
 
                 if (percentage >= 0) {
-                    progressBarUpdate.setProgress(percentage);
-                    tvDownloadPercent.setText(percentage + "%");
+                    if (progressBarUpdate != null) progressBarUpdate.setProgress(percentage);
+                    if (tvDownloadPercent != null) tvDownloadPercent.setText(percentage + "%");
                 }
             }
 
@@ -232,9 +269,9 @@ public class AppUpdateDialog extends DialogFragment {
                 isDownloading = false;
                 downloadedApkFile = apkFile;
 
-                progressBarUpdate.setProgress(100);
-                tvDownloadPercent.setText("100%");
-                tvDownloadingLabel.setText("Installing update...");
+                if (progressBarUpdate != null) progressBarUpdate.setProgress(100);
+                if (tvDownloadPercent != null) tvDownloadPercent.setText("100%");
+                if (tvDownloadingLabel != null) tvDownloadingLabel.setText("Installing update...");
 
                 // Automatically and seamlessly launch the package installer
                 mainHandler.postDelayed(() -> {
@@ -249,9 +286,9 @@ public class AppUpdateDialog extends DialogFragment {
                 if (!isAdded()) return;
                 isDownloading = false;
 
-                layoutDownloadingState.setVisibility(View.GONE);
-                layoutErrorState.setVisibility(View.VISIBLE);
-                tvErrorMessage.setText("Download failed: " + message);
+                if (layoutDownloadingState != null) layoutDownloadingState.setVisibility(View.GONE);
+                if (layoutErrorState != null) layoutErrorState.setVisibility(View.VISIBLE);
+                if (tvErrorMessage != null) tvErrorMessage.setText("Download failed: " + message);
             }
         });
     }

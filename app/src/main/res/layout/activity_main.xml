@@ -16,7 +16,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="24dp">
 
             <!-- App Header -->
             <LinearLayout
@@ -24,17 +26,14 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginTop="8dp"
                 android:layout_marginBottom="16dp">
 
                 <ImageView
+                    android:id="@+id/ivAppLogo"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@drawable/ic_oskar_logo"
                     android:scaleType="fitCenter"
-                    android:background="@drawable/bg_card"
-                    android:padding="2dp"
-                    android:clipToOutline="true"
                     android:contentDescription="OskarShop Logo" />
 
                 <LinearLayout
@@ -64,181 +63,275 @@
                     android:id="@+id/tvAppVersion"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="v1.1.4"
-                    android:textColor="@color/text_muted"
+                    android:text="v1.1.7"
+                    android:textColor="#0284C7"
                     android:textSize="11sp"
-                    android:background="@drawable/bg_pill_badge"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="4dp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_badge_pill_blue"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="5dp"
                     android:clickable="true"
                     android:focusable="true" />
             </LinearLayout>
 
-            <!-- Master Activation Hero Card -->
+            <!-- Master Activation Hero Card: System Status -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="18dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/surface_card">
+                app:cardPreventCornerOverlap="false"
+                app:cardBackgroundColor="@android:color/transparent">
 
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
+                    android:background="@drawable/bg_hero_gradient"
                     android:padding="20dp">
 
+                    <!-- Shield Check Badge Icon (Bottom-Right) -->
+                    <ImageView
+                        android:id="@+id/ivStatusShield"
+                        android:layout_width="68dp"
+                        android:layout_height="68dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentBottom="true"
+                        android:src="@drawable/ic_status_shield"
+                        android:contentDescription="Verified Shield" />
+
+                    <!-- Top Label: System Status -->
+                    <TextView
+                        android:id="@+id/tvStatusHeader"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="System Status"
+                        android:textColor="#D0E2FF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- Switch Toggle (Top-Right) -->
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchEnable"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:checked="true" />
+
+                    <!-- Status Indicator Row: Green Dot + Online -->
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:id="@+id/layoutStatusIndicator"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical">
+                        android:gravity="center_vertical"
+                        android:layout_below="@id/tvStatusHeader"
+                        android:layout_marginTop="4dp">
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                        <ImageView
+                            android:id="@+id/ivStatusDot"
+                            android:layout_width="10dp"
+                            android:layout_height="10dp"
+                            android:src="@drawable/dot_online"
+                            android:contentDescription="Status Dot" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="System Status"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tvMainStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="ACTIVE &amp; LISTENING 24/7"
-                                android:textColor="@color/emerald"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:layout_marginTop="2dp" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switchEnable"
+                        <TextView
+                            android:id="@+id/tvMainStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:checked="true" />
+                            android:text="Online"
+                            android:textColor="#FFFFFF"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:layout_marginStart="8dp" />
                     </LinearLayout>
 
+                    <!-- Subtitle Description -->
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Securely connected to oskarshop.so. Auto-verifies EVC Plus payments and alerts you to new customer orders in real-time."
-                        android:textColor="@color/text_secondary"
+                        android:layout_below="@id/layoutStatusIndicator"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="68dp"
+                        android:text="Actively verifying EVC Plus payments and sending live order alerts."
+                        android:textColor="#F0F6FF"
                         android:textSize="12sp"
                         android:lineSpacingExtra="2dp" />
 
-                    <!-- Quick Stats in Card (3 columns) -->
+                </RelativeLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- 3 Stat Cards Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:baselineAligned="false">
+
+                <!-- Card 1: SMS Sent -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="5dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/surface_border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/surface_card">
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="16dp"
-                        android:baselineAligned="false">
+                        android:orientation="vertical"
+                        android:padding="12dp">
 
-                        <LinearLayout
-                            android:layout_width="0dp"
+                        <FrameLayout
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:background="@drawable/bg_badge_pill_blue">
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_send_paperplane"
+                                android:contentDescription="SMS Sent Icon" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_pill_badge"
-                            android:padding="8dp"
-                            android:orientation="vertical"
-                            android:layout_marginEnd="4dp">
+                            android:text="SMS Sent"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="SMS SENT"
-                                android:textColor="@color/text_muted"
-                                android:textSize="9sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tvTotalForwarded"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textColor="@color/text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:layout_marginTop="2dp" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
+                        <TextView
+                            android:id="@+id/tvTotalForwarded"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_pill_badge"
-                            android:padding="8dp"
-                            android:orientation="vertical"
-                            android:layout_marginHorizontal="2dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="MATCHED"
-                                android:textColor="@color/text_muted"
-                                android:textSize="9sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tvTotalMatched"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textColor="@color/emerald"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:layout_marginTop="2dp" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_pill_badge"
-                            android:padding="8dp"
-                            android:orientation="vertical"
-                            android:layout_marginStart="4dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="ORDERS"
-                                android:textColor="@color/text_muted"
-                                android:textSize="9sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tvTotalOrdersNotified"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textColor="@color/text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:layout_marginTop="2dp" />
-                        </LinearLayout>
+                            android:text="0"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
+                <!-- Card 2: Matched -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="3dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/surface_border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/surface_card">
 
-            <!-- Order Notifications Settings Card -->
-            <androidx.cardview.widget.CardView
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <FrameLayout
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:background="@drawable/bg_badge_pill_green">
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_check_circle"
+                                android:contentDescription="Matched Icon" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Matched"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:id="@+id/tvTotalMatched"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/emerald"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Card 3: Orders -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="5dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/surface_border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/surface_card">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <FrameLayout
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:background="@drawable/bg_badge_pill_blue">
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_layers"
+                                android:contentDescription="Orders Icon" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Orders"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:id="@+id/tvTotalOrdersNotified"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- New Order Push Alerts Card -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
+                app:strokeColor="@color/surface_border"
+                app:strokeWidth="1dp"
                 app:cardBackgroundColor="@color/surface_card">
 
                 <LinearLayout
@@ -253,10 +346,23 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_badge_pill_blue">
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_bell"
+                                android:contentDescription="Bell Icon" />
+                        </FrameLayout>
+
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:layout_marginStart="12dp"
                             android:orientation="vertical">
 
                             <TextView
@@ -264,13 +370,13 @@
                                 android:layout_height="wrap_content"
                                 android:text="New Order Push Alerts"
                                 android:textColor="@color/text_primary"
-                                android:textSize="13sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Plays sound and vibrates when new order is placed"
+                                android:text="Play sound and vibrate when a new order is placed."
                                 android:textColor="@color/text_secondary"
                                 android:textSize="11sp"
                                 android:layout_marginTop="2dp" />
@@ -283,24 +389,29 @@
                             android:checked="true" />
                     </LinearLayout>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btnTestOrderAlert"
-                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="match_parent"
-                        android:layout_height="38dp"
-                        android:layout_marginTop="12dp"
-                        android:text="🔔 Test Order Notification Sound &amp; Alert"
-                        android:textSize="12sp" />
+                        android:layout_height="44dp"
+                        android:layout_marginTop="14dp"
+                        android:text="▶  Test Order Notification"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="false"
+                        android:background="@drawable/bg_btn_primary" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Permissions & Diagnostic Card -->
-            <androidx.cardview.widget.CardView
+            <!-- System Diagnostics & Permissions Card -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
+                app:strokeColor="@color/surface_border"
+                app:strokeWidth="1dp"
                 app:cardBackgroundColor="@color/surface_card">
 
                 <LinearLayout
@@ -309,134 +420,203 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- Header -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="System Diagnostics &amp; Permissions"
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <FrameLayout
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:background="@drawable/bg_badge_pill_blue">
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_activity_pulse"
+                                android:contentDescription="Diagnostics Icon" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="System Diagnostics &amp; Permissions"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:layout_marginStart="10dp" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F1F5F9"
+                        android:layout_marginVertical="12dp" />
 
                     <!-- SMS Permission Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginTop="12dp">
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_key"
+                            android:contentDescription="Key Icon" />
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:layout_marginStart="12dp"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="SMS Permissions"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Required to detect EVC Plus SMS"
-                                android:textColor="@color/text_muted"
-                                android:textSize="10sp" />
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
                         </LinearLayout>
 
-                        <Button
+                        <androidx.appcompat.widget.AppCompatButton
                             android:id="@+id/btnSmsPermission"
-                            style="@style/Widget.Material3.Button.TextButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="36dp"
-                            android:text="Granted ✅"
-                            android:textColor="@color/emerald"
-                            android:textSize="11sp" />
+                            android:layout_height="32dp"
+                            android:text="✓ Full Access"
+                            android:textColor="@color/emerald_text"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textAllCaps="false"
+                            android:paddingHorizontal="12dp"
+                            android:background="@drawable/bg_badge_pill_green" />
                     </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F1F5F9"
+                        android:layout_marginVertical="12dp" />
 
                     <!-- Battery Optimization Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginTop="4dp">
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_settings_gear"
+                            android:contentDescription="Settings Gear" />
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:layout_marginStart="12dp"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Background Execution"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Keeps verifier active 24/7 uninterrupted"
-                                android:textColor="@color/text_muted"
-                                android:textSize="10sp" />
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
                         </LinearLayout>
 
-                        <Button
+                        <androidx.appcompat.widget.AppCompatButton
                             android:id="@+id/btnBatteryOptimization"
-                            style="@style/Widget.Material3.Button.TextButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="36dp"
-                            android:text="Unrestricted ✅"
-                            android:textColor="@color/emerald"
-                            android:textSize="11sp" />
+                            android:layout_height="32dp"
+                            android:text="✓ Unrestricted"
+                            android:textColor="@color/emerald_text"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textAllCaps="false"
+                            android:paddingHorizontal="12dp"
+                            android:background="@drawable/bg_badge_pill_green" />
                     </LinearLayout>
 
-                    <!-- Server Connection Row -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#F1F5F9"
+                        android:layout_marginVertical="12dp" />
+
+                    <!-- Production Target Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginTop="4dp">
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_target_bullseye"
+                            android:contentDescription="Target Icon" />
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:layout_marginStart="12dp"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Production Target"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
 
                             <TextView
                                 android:id="@+id/tvEndpointUrl"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="oskarshop.so/api/sms-webhook"
-                                android:textColor="@color/text_muted"
-                                android:textSize="10sp"
-                                android:fontFamily="monospace" />
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
                         </LinearLayout>
 
-                        <Button
+                        <androidx.appcompat.widget.AppCompatButton
                             android:id="@+id/btnPingServer"
-                            style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="36dp"
-                            android:text="Test Ping"
-                            android:textSize="11sp" />
+                            android:layout_height="32dp"
+                            android:text="📶 Test Ping"
+                            android:textColor="#0066FF"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textAllCaps="false"
+                            android:paddingHorizontal="12dp"
+                            android:background="@drawable/bg_btn_pill_outline" />
                     </LinearLayout>
 
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Activity Log Header -->
             <LinearLayout
@@ -446,10 +626,17 @@
                 android:gravity="center_vertical"
                 android:layout_marginBottom="8dp">
 
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_history_clock"
+                    android:contentDescription="History Clock" />
+
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:layout_marginStart="8dp"
                     android:text="Recent Payment Records"
                     android:textColor="@color/text_primary"
                     android:textSize="14sp"
@@ -460,30 +647,84 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Clear History"
-                    android:textColor="@color/text_muted"
-                    android:textSize="11sp"
-                    android:padding="4dp" />
+                    android:textColor="#0066FF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:drawableStart="@drawable/ic_trash_delete"
+                    android:drawablePadding="4dp"
+                    android:padding="4dp"
+                    android:clickable="true"
+                    android:focusable="true" />
             </LinearLayout>
 
-            <!-- Empty State View -->
-            <TextView
-                android:id="@+id/tvEmptyState"
+            <!-- Recent Payment Records Container -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Awaiting incoming SMS payments...\nWhenever Hormuud sends an EVC Plus SMS, it will appear here instantly."
-                android:textColor="@color/text_muted"
-                android:textSize="12sp"
-                android:gravity="center"
-                android:padding="32dp"
-                android:lineSpacingExtra="4dp" />
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/surface_border"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="@color/surface_card">
 
-            <!-- Log Recycler View -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvLogs"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                tools:listitem="@layout/item_sms_log" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- Empty State View -->
+                    <LinearLayout
+                        android:id="@+id/layoutEmptyState"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingVertical="20dp">
+
+                        <FrameLayout
+                            android:layout_width="52dp"
+                            android:layout_height="52dp"
+                            android:background="@drawable/bg_badge_pill_blue">
+                            <ImageView
+                                android:layout_width="26dp"
+                                android:layout_height="26dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_receipt_empty"
+                                android:contentDescription="Empty Receipt" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No payment records yet"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="12dp" />
+
+                        <TextView
+                            android:id="@+id/tvEmptyState"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Awaiting incoming SMS payments...\nWhenever Hormuud sends an EVC Plus SMS, it will appear here."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:lineSpacingExtra="3dp"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+
+                    <!-- Log Recycler View -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvLogs"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        tools:listitem="@layout/item_sms_log" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

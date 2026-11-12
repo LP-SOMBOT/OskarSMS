@@ -13,7 +13,9 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.graphics.Color;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -46,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private OskarApiClient apiClient;
 
     private TextView tvMainStatus;
+    private ImageView ivStatusDot;
     private TextView tvAppVersion;
     private MaterialSwitch switchEnable;
     private MaterialSwitch switchOrderNotif;
@@ -98,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initViews() {
         tvMainStatus = findViewById(R.id.tvMainStatus);
+        ivStatusDot = findViewById(R.id.ivStatusDot);
         tvAppVersion = findViewById(R.id.tvAppVersion);
         switchEnable = findViewById(R.id.switchEnable);
         switchOrderNotif = findViewById(R.id.switchOrderNotif);
@@ -162,10 +166,12 @@ public class MainActivity extends AppCompatActivity {
     private void updateStatusUi(boolean enabled) {
         if (enabled) {
             tvMainStatus.setText(R.string.status_active);
-            tvMainStatus.setTextColor(ContextCompat.getColor(this, R.color.emerald));
+            tvMainStatus.setTextColor(Color.WHITE);
+            if (ivStatusDot != null) ivStatusDot.setImageResource(R.drawable.dot_online);
         } else {
             tvMainStatus.setText(R.string.status_inactive);
             tvMainStatus.setTextColor(ContextCompat.getColor(this, R.color.text_muted));
+            if (ivStatusDot != null) ivStatusDot.setImageResource(R.drawable.dot_offline);
         }
     }
 
@@ -178,24 +184,28 @@ public class MainActivity extends AppCompatActivity {
     private void checkPermissionsAndPrompts() {
         // SMS & Telephony Full Access
         if (PermissionUtils.hasSmsPermissions(this)) {
-            btnSmsPermission.setText("Full Access ✅");
-            btnSmsPermission.setTextColor(ContextCompat.getColor(this, R.color.emerald));
+            btnSmsPermission.setText("✓ Full Access");
+            btnSmsPermission.setBackgroundResource(R.drawable.bg_badge_pill_green);
+            btnSmsPermission.setTextColor(ContextCompat.getColor(this, R.color.emerald_text));
             btnSmsPermission.setEnabled(false);
         } else {
-            btnSmsPermission.setText("Grant Full Access ⚠️");
-            btnSmsPermission.setTextColor(ContextCompat.getColor(this, R.color.amber));
+            btnSmsPermission.setText("⚠️ Grant Access");
+            btnSmsPermission.setBackgroundResource(R.drawable.bg_badge_pill_amber);
+            btnSmsPermission.setTextColor(ContextCompat.getColor(this, R.color.amber_text));
             btnSmsPermission.setEnabled(true);
             requestSmsPermissions();
         }
 
         // Battery Optimization
         if (PermissionUtils.isBatteryOptimizationIgnored(this)) {
-            btnBatteryOptimization.setText("Unrestricted ✅");
-            btnBatteryOptimization.setTextColor(ContextCompat.getColor(this, R.color.emerald));
+            btnBatteryOptimization.setText("✓ Unrestricted");
+            btnBatteryOptimization.setBackgroundResource(R.drawable.bg_badge_pill_green);
+            btnBatteryOptimization.setTextColor(ContextCompat.getColor(this, R.color.emerald_text));
             btnBatteryOptimization.setEnabled(false);
         } else {
-            btnBatteryOptimization.setText("Fix Setting ⚠️");
-            btnBatteryOptimization.setTextColor(ContextCompat.getColor(this, R.color.amber));
+            btnBatteryOptimization.setText("⚠️ Fix Setting");
+            btnBatteryOptimization.setBackgroundResource(R.drawable.bg_badge_pill_amber);
+            btnBatteryOptimization.setTextColor(ContextCompat.getColor(this, R.color.amber_text));
             btnBatteryOptimization.setEnabled(true);
         }
 
@@ -213,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
             public void onUpdateAvailable(UpdateInfo info) {
                 availableUpdate = info;
                 tvAppVersion.setText("v" + info.getVersionName() + " 🚀");
-                tvAppVersion.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.emerald));
+                tvAppVersion.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.primary));
 
                 // Immediately pop up the full-screen non-dismissible update screen
                 AppUpdateDialog.showUpdate(getSupportFragmentManager(), info);
@@ -249,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
 
             mainHandler.post(() -> {
                 btnPingServer.setEnabled(true);
-                btnPingServer.setText("Test Ping");
+                btnPingServer.setText("📶 Test Ping");
                 if (success) {
                     Toast.makeText(this, "✅ Connected to oskarshop.so production!", Toast.LENGTH_LONG).show();
                 } else {

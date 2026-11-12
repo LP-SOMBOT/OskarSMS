@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -8,7 +8,9 @@
     android:layout_marginBottom="8dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
-    app:cardBackgroundColor="@color/surface_card">
+    app:strokeColor="#E2E8F0"
+    app:strokeWidth="1dp"
+    app:cardBackgroundColor="#FFFFFF">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -28,12 +30,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="MATCHED"
-                android:textColor="@color/emerald"
+                android:textColor="#16A34A"
                 android:textSize="10sp"
                 android:textStyle="bold"
-                android:background="@drawable/bg_status_active"
+                android:background="@drawable/bg_badge_pill_green"
                 android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp" />
+                android:paddingVertical="3dp" />
 
             <TextView
                 android:id="@+id/tvMatchedOrder"
@@ -41,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="#iibinta940"
-                android:textColor="@color/text_primary"
+                android:textColor="#0F172A"
                 android:textSize="11sp"
                 android:fontFamily="monospace"
                 android:textStyle="bold" />
@@ -56,7 +58,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="13:24:41"
-                android:textColor="@color/text_muted"
+                android:textColor="#94A3B8"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -73,7 +75,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="$1.19"
-                android:textColor="@color/text_primary"
+                android:textColor="#0F172A"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:fontFamily="monospace" />
@@ -84,7 +86,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:text="ka heshay: 0613982172"
-                android:textColor="@color/text_secondary"
+                android:textColor="#64748B"
                 android:textSize="12sp"
                 android:fontFamily="monospace" />
         </LinearLayout>
@@ -96,11 +98,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="[-EVCPlus-] waxaad $1.19 ka heshay 0613982172, Tar: 09/11/26 12:19:38"
-            android:textColor="@color/text_muted"
+            android:textColor="#94A3B8"
             android:textSize="11sp"
             android:fontFamily="monospace"
             android:maxLines="2"
             android:ellipsize="end" />
 
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

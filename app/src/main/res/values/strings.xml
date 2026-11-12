@@ -1,14 +1,15 @@
 <resources>
     <string name="app_name">OskarSMS</string>
-    <string name="app_subtitle">Auto EVC Plus Payment Verifier</string>
-    <string name="status_active">ACTIVE &amp; LISTENING 24/7</string>
-    <string name="status_inactive">PAUSED / TURNED OFF</string>
+    <string name="app_subtitle">EVC Plus Verifier &amp; Live Order Alerts</string>
+    <string name="status_active">Online</string>
+    <string name="status_inactive">Offline</string>
     <string name="channel_name">OskarSMS Forwarder Service</string>
     <string name="channel_desc">Persistent notification to keep OskarSMS running reliably in background</string>
     <string name="payment_channel_name">Payment Confirmations</string>
     <string name="payment_channel_desc">Alerts for matched OskarShop orders</string>
-    <string name="update_prompt_text">A new version of the app is available, press\n\"Update\" to install</string>
-    <string name="update_btn_whats_new">What\'s new?</string>
-    <string name="update_btn_update">Update</string>
+    <string name="update_prompt_text">A new version is available</string>
+    <string name="update_subtitle_text">Get the latest features, improvements, and bug fixes for a better experience.</string>
+    <string name="update_btn_whats_new">What\'s New?</string>
+    <string name="update_btn_update">Update Now</string>
     <string name="update_downloading">Downloading update...</string>
 </resources>
