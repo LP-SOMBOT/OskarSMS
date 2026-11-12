@@ -43,37 +43,32 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.8-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.1.9-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.8-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.1.9-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.1.8-APK
-          path: release-output/OskarSMS-v1.1.8-release.apk
+          name: OskarSMS-v1.1.9-APK
+          path: release-output/OskarSMS-v1.1.9-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.1.8
-          name: "OskarSMS v1.1.8 — Clean Light UI/UX Redesign & 3D Rocket Update Screen"
+          tag_name: v1.1.9
+          name: "OskarSMS v1.1.9 — 3D Rocket Update Verification"
           body: |
-            ### 📱 OskarSMS v1.1.8 — Complete UI/UX Redesign & 3D Rocket Update Screen
+            ### 📱 OskarSMS v1.1.9 — 3D Rocket Update Verification
 
-            **What's New in v1.1.8:**
-            - **Modern Light Theme Redesign**: Vibrant blue gradient System Status card, clean white rounded cards, 3 stat metric tiles (SMS Sent, Matched, Orders).
-            - **3D Rocket Update Screen**: Gorgeous 3D illustration, dynamic What's New items with green checkmarks, zero-click package installer.
-            - **Dynamic Changelog**: Clean, short feature update lines (1, 3, or more lines dynamically rendered).
-            - **Retained App Identity**: Preserved existing Oskar logo and full core verification logic.
-
-            **Installation:**
-            1. Existing users on v1.1.7 or earlier will automatically see the 3D rocket update screen on app launch. Tap **Update Now**.
-            2. Or download `OskarSMS-v1.1.8-release.apk` below directly.
+            **What's New in v1.1.9:**
+            - **Modern Light UI/UX Theme Active**: Beautiful light cards, vibrant blue gradient System Status card.
+            - **3D Rocket Forced Update Screen**: High-res 3D rocket illustration with dynamic What's New items and zero-click installer.
+            - **Enhanced Performance**: Streamlined EVC Plus SMS verification and instant webhook alerts.
           files: |
-            release-output/OskarSMS-v1.1.8-release.apk
+            release-output/OskarSMS-v1.1.9-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false
