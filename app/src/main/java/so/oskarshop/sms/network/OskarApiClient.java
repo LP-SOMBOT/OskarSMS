@@ -29,6 +29,24 @@ public class OskarApiClient {
             .build();
     }
 
+    public static class LoginResult {
+        public final boolean success;
+        public final String message;
+        public final String token;
+        public final String secretToken;
+        public final String adminName;
+        public final String phone;
+
+        public LoginResult(boolean success, String message, String token, String secretToken, String adminName, String phone) {
+            this.success = success;
+            this.message = message;
+            this.token = token;
+            this.secretToken = secretToken;
+            this.adminName = adminName;
+            this.phone = phone;
+        }
+    }
+
     public static class ForwardResult {
         public final boolean success;
         public final int httpCode;
@@ -51,16 +69,68 @@ public class OskarApiClient {
         }
     }
 
-    public ForwardResult forwardSms(String primaryUrl, String fallbackUrl, String secretToken, String sender, String content) {
+    public LoginResult loginAdmin(String serverUrl, String phone, String password) {
+        try {
+            String loginUrl = serverUrl.replace("/api/sms-webhook", "") + "/api/admin/apk-login";
+            JsonObject json = new JsonObject();
+            json.addProperty("phone", phone);
+            json.addProperty("password", password);
+            json.addProperty("appVersion", "1.2.1");
+
+            RequestBody body = RequestBody.create(json.toString(), JSON);
+            Request request = new Request.Builder()
+                .url(loginUrl)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("User-Agent", "OskarSMS-Android/1.2.1")
+                .post(body)
+                .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                String resStr = response.body() != null ? response.body().string() : "";
+                if (response.isSuccessful()) {
+                    JsonObject obj = JsonParser.parseString(resStr).getAsJsonObject();
+                    boolean ok = obj.has("success") && obj.get("success").getAsBoolean();
+                    String msg = obj.has("message") ? obj.get("message").getAsString() : "Success";
+                    String token = obj.has("token") && !obj.get("token").isJsonNull() ? obj.get("token").getAsString() : "";
+                    String secret = obj.has("secretToken") && !obj.get("secretToken").isJsonNull() ? obj.get("secretToken").getAsString() : "";
+
+                    String adminName = "Admin";
+                    String resPhone = phone;
+                    if (obj.has("admin") && obj.get("admin").isJsonObject()) {
+                        JsonObject adm = obj.getAsJsonObject("admin");
+                        if (adm.has("name") && !adm.get("name").isJsonNull()) adminName = adm.get("name").getAsString();
+                        if (adm.has("phone") && !adm.get("phone").isJsonNull()) resPhone = adm.get("phone").getAsString();
+                    }
+
+                    if (ok) {
+                        return new LoginResult(true, msg, token, secret, adminName, resPhone);
+                    } else {
+                        return new LoginResult(false, msg, null, null, null, null);
+                    }
+                } else {
+                    String msg = "Login failed (HTTP " + response.code() + ")";
+                    try {
+                        JsonObject obj = JsonParser.parseString(resStr).getAsJsonObject();
+                        if (obj.has("message")) msg = obj.get("message").getAsString();
+                    } catch (Exception ignored) {}
+                    return new LoginResult(false, msg, null, null, null, null);
+                }
+            }
+        } catch (Exception e) {
+            return new LoginResult(false, "Connection error: " + e.getMessage(), null, null, null, null);
+        }
+    }
+
+    public ForwardResult forwardSms(String primaryUrl, String fallbackUrl, String secretToken, String adminToken, String adminPhone, String sender, String content) {
         // 1. Try primary URL
-        ForwardResult primary = executePost(primaryUrl, secretToken, sender, content);
+        ForwardResult primary = executePost(primaryUrl, secretToken, adminToken, adminPhone, sender, content);
         if (primary.success) {
             return primary;
         }
 
         // 2. If primary fails and fallback exists, try fallback URL
         if (fallbackUrl != null && !fallbackUrl.isEmpty() && !fallbackUrl.equalsIgnoreCase(primaryUrl)) {
-            ForwardResult fallback = executePost(fallbackUrl, secretToken, sender, content);
+            ForwardResult fallback = executePost(fallbackUrl, secretToken, adminToken, adminPhone, sender, content);
             if (fallback.success) {
                 return fallback;
             }
@@ -69,7 +139,7 @@ public class OskarApiClient {
         return primary;
     }
 
-    private ForwardResult executePost(String targetUrl, String secretToken, String sender, String content) {
+    private ForwardResult executePost(String targetUrl, String secretToken, String adminToken, String adminPhone, String sender, String content) {
         try {
             JsonObject json = new JsonObject();
             json.addProperty("from", sender);
@@ -77,13 +147,20 @@ public class OskarApiClient {
 
             RequestBody body = RequestBody.create(json.toString(), JSON);
 
-            Request request = new Request.Builder()
+            Request.Builder reqBuilder = new Request.Builder()
                 .url(targetUrl)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("x-forwarder-token", secretToken)
-                .addHeader("User-Agent", "OskarSMS-Android/1.1.2")
-                .post(body)
-                .build();
+                .addHeader("User-Agent", "OskarSMS-Android/1.2.1");
+
+            if (adminToken != null && !adminToken.isEmpty()) {
+                reqBuilder.addHeader("x-admin-token", adminToken);
+            }
+            if (adminPhone != null && !adminPhone.isEmpty()) {
+                reqBuilder.addHeader("x-admin-phone", adminPhone);
+            }
+
+            Request request = reqBuilder.post(body).build();
 
             try (Response response = client.newCall(request).execute()) {
                 int code = response.code();

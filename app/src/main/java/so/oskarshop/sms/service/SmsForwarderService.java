@@ -201,9 +201,13 @@ public class SmsForwarderService extends Service {
             List<SmsInboxTracker.RawSms> messages = SmsInboxTracker.queryRecentInbox(this, window);
             for (SmsInboxTracker.RawSms msg : messages) {
                 if (msg.body == null || msg.body.trim().isEmpty()) continue;
+                // Anti-SMS Injection Guard: Ignore personal mobile numbers
+                if (!SmsInboxTracker.isLegitimateCarrierSender(msg.address, msg.body)) {
+                    continue;
+                }
                 String fingerprint = SmsInboxTracker.computeFingerprint(msg.address, msg.body, msg.date);
                 if (SmsInboxTracker.markIfNew(this, fingerprint)) {
-                    Log.i(TAG, "Dual-Capture detected unforwarded SMS in inbox from [" + msg.address + "]: " + msg.body);
+                    Log.i(TAG, "Dual-Capture detected unforwarded carrier SMS in inbox from [" + msg.address + "]: " + msg.body);
                     processSms(msg.address, msg.body);
                 }
             }
@@ -255,18 +259,31 @@ public class SmsForwarderService extends Service {
     }
 
     public void processSms(String sender, String body) {
+        // Enforce that only authorized administrators who are logged in can process/forward SMS
+        if (!settings.isLoggedIn()) {
+            Log.w(TAG, "processSms: Dropped incoming SMS because administrator is not logged in.");
+            return;
+        }
+
+        if (!SmsInboxTracker.isLegitimateCarrierSender(sender, body)) {
+            Log.w(TAG, "processSms: Blocked potential SMS injection from non-carrier sender: [" + sender + "]");
+            return;
+        }
+
         if (wakeLock != null && !wakeLock.isHeld()) {
             wakeLock.acquire(30000); // Hold for 30s max
         }
 
         executor.execute(() -> {
             try {
-                Log.i(TAG, "Forwarding captured SMS to OskarShop production backend: sender=" + sender);
+                Log.i(TAG, "Forwarding captured SMS by admin [" + settings.getAdminPhone() + "]: sender=" + sender);
 
                 OskarApiClient.ForwardResult result = apiClient.forwardSms(
                     settings.getServerUrl(),
                     settings.getFallbackUrl(),
                     settings.getSecretToken(),
+                    settings.getAdminToken(),
+                    settings.getAdminPhone(),
                     sender,
                     body
                 );

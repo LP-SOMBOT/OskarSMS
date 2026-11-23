@@ -43,33 +43,32 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.2.0-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.2.1-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.2.0-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.2.1-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.2.0-APK
-          path: release-output/OskarSMS-v1.2.0-release.apk
+          name: OskarSMS-v1.2.1-APK
+          path: release-output/OskarSMS-v1.2.1-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.2.0
-          name: "OskarSMS v1.2.0 — Clean Update Notification & 3D Rocket Update Screen"
+          tag_name: v1.2.1
+          name: "OskarSMS v1.2.1 — Anti-SMS-Injection Security Hardening"
           body: |
-            ### 📱 OskarSMS v1.2.0 — Clean Update Notification & 3D Rocket Update Screen
+            ### 🛡️ OskarSMS v1.2.1 — Anti-SMS-Injection Security Hardening
 
-            **What's New in v1.2.0:**
-            - **Clean Update Notification**: Simplified notification description to concise "Update Now" and removed Somali text.
-            - **Modern Light UI/UX Theme Active**: Beautiful light cards, vibrant blue gradient System Status card.
-            - **3D Rocket Forced Update Screen**: High-res 3D rocket illustration with dynamic What's New items and zero-click installer.
-            - **Enhanced Performance**: Streamlined EVC Plus SMS verification and instant webhook alerts.
+            **What's New in v1.2.1:**
+            - **Anti-SMS Injection Protection**: Strictly blocks forwarded SMS originating from personal subscriber mobile numbers.
+            - **Carrier Verification**: Strictly validates official telecom shortcodes (192/EVC-Plus, 100/ZAAD, Sahal, e-Dahab).
+            - **End-to-End Hardening**: Prevents unauthorized automated balance and top-up manipulation.
           files: |
-            release-output/OskarSMS-v1.2.0-release.apk
+            release-output/OskarSMS-v1.2.1-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false

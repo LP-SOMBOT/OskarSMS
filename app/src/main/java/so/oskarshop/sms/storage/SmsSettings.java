@@ -25,6 +25,10 @@ public class SmsSettings {
     private static final String KEY_LAST_CHECKED_ORDER_TIME = "last_checked_order_time";
     private static final String KEY_LAST_PING_SUCCESS = "last_ping_success";
     private static final String KEY_LAST_PING_TIME = "last_ping_time";
+    private static final String KEY_IS_LOGGED_IN = "is_logged_in";
+    private static final String KEY_ADMIN_PHONE = "admin_phone";
+    private static final String KEY_ADMIN_NAME = "admin_name";
+    private static final String KEY_ADMIN_TOKEN = "admin_token";
 
     private final SharedPreferences prefs;
 
@@ -136,5 +140,42 @@ public class SmsSettings {
             .putBoolean(KEY_LAST_PING_SUCCESS, success)
             .putLong(KEY_LAST_PING_TIME, System.currentTimeMillis())
             .apply();
+    }
+
+    public boolean isLoggedIn() {
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false);
+    }
+
+    public void setLoggedIn(boolean loggedIn, String phone, String name, String token, String secretToken) {
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(KEY_IS_LOGGED_IN, loggedIn);
+        editor.putString(KEY_ADMIN_PHONE, phone);
+        editor.putString(KEY_ADMIN_NAME, name);
+        editor.putString(KEY_ADMIN_TOKEN, token);
+        if (secretToken != null && !secretToken.isEmpty()) {
+            editor.putString(KEY_SECRET_TOKEN, secretToken);
+        }
+        editor.apply();
+    }
+
+    public void logout() {
+        prefs.edit()
+            .putBoolean(KEY_IS_LOGGED_IN, false)
+            .remove(KEY_ADMIN_TOKEN)
+            .remove(KEY_ADMIN_PHONE)
+            .remove(KEY_ADMIN_NAME)
+            .apply();
+    }
+
+    public String getAdminPhone() {
+        return prefs.getString(KEY_ADMIN_PHONE, "");
+    }
+
+    public String getAdminName() {
+        return prefs.getString(KEY_ADMIN_NAME, "Admin");
+    }
+
+    public String getAdminToken() {
+        return prefs.getString(KEY_ADMIN_TOKEN, "");
     }
 }

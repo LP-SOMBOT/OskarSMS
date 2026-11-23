@@ -27,6 +27,10 @@ public class SmsReceiver extends BroadcastReceiver {
         }
 
         SmsSettings settings = new SmsSettings(context);
+        if (!settings.isLoggedIn()) {
+            Log.d(TAG, "OskarSMS: Dropped incoming SMS because administrator is not logged in.");
+            return;
+        }
         if (!settings.isEnabled()) {
             Log.d(TAG, "OskarSMS is disabled by admin in settings, skipping incoming SMS.");
             return;
@@ -59,7 +63,13 @@ public class SmsReceiver extends BroadcastReceiver {
             return;
         }
 
-        Log.i(TAG, "SMS captured from sender: [" + sender + "]: " + fullBody);
+        // Anti-SMS Injection Security Guard: Strictly drop SMS from personal mobile numbers or non-carrier senders
+        if (!SmsInboxTracker.isLegitimateCarrierSender(sender, fullBody)) {
+            Log.w(TAG, "Anti-SMS-Injection: Blocked incoming SMS from unauthorized/personal sender: [" + sender + "]");
+            return;
+        }
+
+        Log.i(TAG, "Legitimate carrier SMS captured from sender: [" + sender + "]: " + fullBody);
 
         // Deduplication: prevent duplicate processing between Broadcast and ContentObserver
         String fingerprint = SmsInboxTracker.computeFingerprint(sender, fullBody, timestamp);
@@ -68,7 +78,7 @@ public class SmsReceiver extends BroadcastReceiver {
             return;
         }
 
-        // Forward every single SMS immediately to SmsForwarderService
+        // Forward authentic carrier payment SMS to SmsForwarderService
         SmsForwarderService.startForwarding(context, sender, fullBody);
     }
 }

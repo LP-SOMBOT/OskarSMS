@@ -36,11 +36,69 @@ public class SmsInboxTracker {
     }
 
     /**
-     * Captures 100% of all incoming SMS without filtering by sender, number, or keywords.
-     * All filtering and parsing is handled centrally by the server pipeline.
+     * Strictly verifies whether an incoming SMS is genuinely from an authentic telecom carrier
+     * (EVC-Plus/Hormuud, ZAAD/Telesom, Sahal/Golis, e-Dahab/Somtel) and NOT an injected SMS
+     * from a personal subscriber mobile number.
+     */
+    public static boolean isLegitimateCarrierSender(String sender, String body) {
+        if (sender == null || sender.trim().isEmpty()) return false;
+        if (body == null || body.trim().isEmpty()) return false;
+
+        String cleanSender = sender.trim().toUpperCase(Locale.ROOT);
+        String digitsOnly = cleanSender.replaceAll("[^0-9]", "");
+
+        // 1. HARD BLOCK: Ordinary Personal Phone Numbers (SMS Injection Attack Vector)
+        // Somali phone numbers have 8-12 digits (e.g., 25261xxxxxxx, 061xxxxxxx, +25263xxxxxxx)
+        if (digitsOnly.length() >= 8) {
+            Log.w("OskarSmsSecurity", "SMS Injection blocked: sender [" + sender + "] is a personal phone number, not a carrier receipt.");
+            return false;
+        }
+
+        // 2. Allow Official Telecom Names & Shortcodes
+        boolean isOfficialTelecomName =
+            cleanSender.equals("192") ||
+            cleanSender.contains("EVCPLUS") ||
+            cleanSender.contains("EVC-PLUS") ||
+            cleanSender.contains("HORMUUD") ||
+            cleanSender.equals("100") ||
+            cleanSender.equals("123") ||
+            cleanSender.contains("ZAAD") ||
+            cleanSender.contains("TELESOM") ||
+            cleanSender.contains("SAHAL") ||
+            cleanSender.contains("GOLIS") ||
+            cleanSender.contains("EDAHAB") ||
+            cleanSender.contains("SOMTEL") ||
+            cleanSender.equals("700");
+
+        // 3. Shortcodes (3 to 6 digits, e.g., 192, 100, 123, 700)
+        boolean isCarrierShortcode = digitsOnly.length() >= 3 && digitsOnly.length() <= 6;
+
+        if (!isOfficialTelecomName && !isCarrierShortcode) {
+            Log.w("OskarSmsSecurity", "SMS Injection blocked: sender [" + sender + "] is not a recognized telecom carrier shortcode.");
+            return false;
+        }
+
+        // 4. Content Verification: Must contain carrier receipt transaction indicators
+        String lowerBody = body.toLowerCase(Locale.ROOT);
+        boolean hasPaymentKeywords =
+            lowerBody.contains("ka heshay") ||
+            lowerBody.contains("waxaad") ||
+            lowerBody.contains("haraagaagu") ||
+            lowerBody.contains("haraaga") ||
+            lowerBody.contains("evcplus") ||
+            lowerBody.contains("evc-plus") ||
+            lowerBody.contains("zaad") ||
+            lowerBody.contains("sahal") ||
+            lowerBody.contains("edahab");
+
+        return hasPaymentKeywords;
+    }
+
+    /**
+     * Filters candidate SMS to ensure only legitimate carrier payment receipts are processed.
      */
     public static boolean isCandidateSms(String sender, String body) {
-        return body != null && !body.trim().isEmpty();
+        return isLegitimateCarrierSender(sender, body);
     }
 
     /**

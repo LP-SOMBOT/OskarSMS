@@ -15,7 +15,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.graphics.Color;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -46,6 +48,16 @@ public class MainActivity extends AppCompatActivity {
     private SmsSettings settings;
     private SmsLogStorage logStorage;
     private OskarApiClient apiClient;
+
+    private View layoutAdminLogin;
+    private View layoutMainDashboard;
+    private EditText etAdminPhone;
+    private EditText etAdminPassword;
+    private Button btnAdminLogin;
+    private TextView tvLoginError;
+    private ProgressBar pbLoginLoading;
+    private TextView tvAdminSessionInfo;
+    private TextView btnAdminLogout;
 
     private TextView tvMainStatus;
     private ImageView ivStatusDot;
@@ -89,8 +101,8 @@ public class MainActivity extends AppCompatActivity {
         checkPermissionsAndPrompts();
         refreshLogsAndStats();
 
-        // Start persistent background service if enabled and schedule watchdog
-        if (settings.isEnabled()) {
+        // Start persistent background service only if logged in as admin and enabled
+        if (settings.isLoggedIn() && settings.isEnabled()) {
             SmsForwarderService.startListening(this);
             so.oskarshop.sms.receiver.WatchdogReceiver.scheduleWatchdog(this);
         }
@@ -99,7 +111,86 @@ public class MainActivity extends AppCompatActivity {
         checkForUpdatesInstantly();
     }
 
+    private void updateAuthVisibility() {
+        if (settings.isLoggedIn()) {
+            if (layoutAdminLogin != null) layoutAdminLogin.setVisibility(View.GONE);
+            if (layoutMainDashboard != null) layoutMainDashboard.setVisibility(View.VISIBLE);
+            String name = settings.getAdminName();
+            String phone = settings.getAdminPhone();
+            if (tvAdminSessionInfo != null) {
+                tvAdminSessionInfo.setText("Admin: " + name + " (" + phone + ")");
+            }
+        } else {
+            if (layoutAdminLogin != null) layoutAdminLogin.setVisibility(View.VISIBLE);
+            if (layoutMainDashboard != null) layoutMainDashboard.setVisibility(View.GONE);
+            if (tvLoginError != null) tvLoginError.setVisibility(View.GONE);
+            if (pbLoginLoading != null) pbLoginLoading.setVisibility(View.GONE);
+            if (btnAdminLogin != null) btnAdminLogin.setEnabled(true);
+        }
+    }
+
     private void initViews() {
+        layoutAdminLogin = findViewById(R.id.layoutAdminLogin);
+        layoutMainDashboard = findViewById(R.id.layoutMainDashboard);
+        etAdminPhone = findViewById(R.id.etAdminPhone);
+        etAdminPassword = findViewById(R.id.etAdminPassword);
+        btnAdminLogin = findViewById(R.id.btnAdminLogin);
+        tvLoginError = findViewById(R.id.tvLoginError);
+        pbLoginLoading = findViewById(R.id.pbLoginLoading);
+        tvAdminSessionInfo = findViewById(R.id.tvAdminSessionInfo);
+        btnAdminLogout = findViewById(R.id.btnAdminLogout);
+
+        updateAuthVisibility();
+
+        if (btnAdminLogin != null) {
+            btnAdminLogin.setOnClickListener(v -> {
+                String phone = etAdminPhone != null ? etAdminPhone.getText().toString().trim() : "";
+                String password = etAdminPassword != null ? etAdminPassword.getText().toString().trim() : "";
+
+                if (phone.isEmpty() || password.isEmpty()) {
+                    if (tvLoginError != null) {
+                        tvLoginError.setText("Please enter your phone number and password.");
+                        tvLoginError.setVisibility(View.VISIBLE);
+                    }
+                    return;
+                }
+
+                if (tvLoginError != null) tvLoginError.setVisibility(View.GONE);
+                if (pbLoginLoading != null) pbLoginLoading.setVisibility(View.VISIBLE);
+                btnAdminLogin.setEnabled(false);
+
+                new Thread(() -> {
+                    OskarApiClient.LoginResult res = apiClient.loginAdmin(settings.getServerUrl(), phone, password);
+                    mainHandler.post(() -> {
+                        if (pbLoginLoading != null) pbLoginLoading.setVisibility(View.GONE);
+                        btnAdminLogin.setEnabled(true);
+
+                        if (res.success) {
+                            settings.setLoggedIn(true, res.phone, res.adminName, res.token, res.secretToken);
+                            updateAuthVisibility();
+                            Toast.makeText(MainActivity.this, "Welcome, " + res.adminName, Toast.LENGTH_SHORT).show();
+                            if (settings.isEnabled()) {
+                                SmsForwarderService.startListening(MainActivity.this);
+                            }
+                        } else {
+                            if (tvLoginError != null) {
+                                tvLoginError.setText(res.message != null ? res.message : "Access denied: Only administrators can use this app.");
+                                tvLoginError.setVisibility(View.VISIBLE);
+                            }
+                        }
+                    });
+                }).start();
+            });
+        }
+
+        if (btnAdminLogout != null) {
+            btnAdminLogout.setOnClickListener(v -> {
+                settings.logout();
+                updateAuthVisibility();
+                Toast.makeText(MainActivity.this, "Signed out", Toast.LENGTH_SHORT).show();
+            });
+        }
+
         tvMainStatus = findViewById(R.id.tvMainStatus);
         ivStatusDot = findViewById(R.id.ivStatusDot);
         tvAppVersion = findViewById(R.id.tvAppVersion);
