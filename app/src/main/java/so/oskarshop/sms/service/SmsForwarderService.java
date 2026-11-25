@@ -195,7 +195,7 @@ public class SmsForwarderService extends Service {
      * Captures 100% of SMS from any sender and any number.
      */
     private void scanAndForwardInboxMessages() {
-        if (!settings.isEnabled()) return;
+        if (!settings.isLoggedIn() || !settings.isEnabled()) return;
         try {
             long window = System.currentTimeMillis() - 15 * 60 * 1000; // last 15 minutes
             List<SmsInboxTracker.RawSms> messages = SmsInboxTracker.queryRecentInbox(this, window);
@@ -208,7 +208,7 @@ public class SmsForwarderService extends Service {
                 String fingerprint = SmsInboxTracker.computeFingerprint(msg.address, msg.body, msg.date);
                 if (SmsInboxTracker.markIfNew(this, fingerprint)) {
                     Log.i(TAG, "Dual-Capture detected unforwarded carrier SMS in inbox from [" + msg.address + "]: " + msg.body);
-                    processSms(msg.address, msg.body);
+                    processSms(msg.address, msg.body, fingerprint);
                 }
             }
         } catch (Exception e) {
@@ -217,7 +217,7 @@ public class SmsForwarderService extends Service {
     }
 
     private void pollOrdersWorker() {
-        if (!settings.isEnabled() || !settings.isOrderNotificationsEnabled()) {
+        if (!settings.isLoggedIn() || !settings.isEnabled() || !settings.isOrderNotificationsEnabled()) {
             return;
         }
 
@@ -232,6 +232,8 @@ public class SmsForwarderService extends Service {
                 settings.getOrdersUrl(),
                 settings.getOrdersFallbackUrl(),
                 settings.getSecretToken(),
+                settings.getAdminToken(),
+                settings.getAdminPhone(),
                 lastChecked
             );
 
@@ -259,6 +261,10 @@ public class SmsForwarderService extends Service {
     }
 
     public void processSms(String sender, String body) {
+        processSms(sender, body, null);
+    }
+
+    public void processSms(String sender, String body, @Nullable String fingerprint) {
         // Enforce that only authorized administrators who are logged in can process/forward SMS
         if (!settings.isLoggedIn()) {
             Log.w(TAG, "processSms: Dropped incoming SMS because administrator is not logged in.");
@@ -287,6 +293,17 @@ public class SmsForwarderService extends Service {
                     sender,
                     body
                 );
+
+                // Unmark transient network/5xx/401 failures so SMS can be retried instead of dropped
+                if (!result.success && fingerprint != null &&
+                    (result.httpCode == 0 || result.httpCode >= 500 || result.httpCode == 401)) {
+                    SmsInboxTracker.unmark(this, fingerprint);
+                }
+
+                if (result.httpCode == 401) {
+                    Log.w(TAG, "Admin session rejected with 401; resetting session so admin can re-authenticate.");
+                    settings.logout();
+                }
 
                 settings.incrementTotalForwarded();
 

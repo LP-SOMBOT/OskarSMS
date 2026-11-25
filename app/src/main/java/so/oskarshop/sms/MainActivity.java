@@ -345,7 +345,12 @@ public class MainActivity extends AppCompatActivity {
         btnPingServer.setText("Pinging...");
 
         new Thread(() -> {
-            boolean success = apiClient.pingServer(settings.getServerUrl(), settings.getSecretToken());
+            boolean success = apiClient.pingServer(
+                settings.getServerUrl(),
+                settings.getSecretToken(),
+                settings.getAdminToken(),
+                settings.getAdminPhone()
+            );
             settings.setLastPingResult(success);
 
             mainHandler.post(() -> {
@@ -389,6 +394,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        updateAuthVisibility();
         checkPermissionsAndPrompts();
         refreshLogsAndStats();
         checkForUpdatesInstantly();

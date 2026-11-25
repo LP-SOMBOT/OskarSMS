@@ -71,17 +71,21 @@ public class OskarApiClient {
 
     public LoginResult loginAdmin(String serverUrl, String phone, String password) {
         try {
-            String loginUrl = serverUrl.replace("/api/sms-webhook", "") + "/api/admin/apk-login";
+            String baseUrl = serverUrl != null ? serverUrl.replace("/api/sms-webhook", "") : "https://www.oskarshop.so";
+            if (baseUrl.startsWith("https://oskarshop.so")) {
+                baseUrl = baseUrl.replace("https://oskarshop.so", "https://www.oskarshop.so");
+            }
+            String loginUrl = baseUrl + "/api/admin/apk-login";
             JsonObject json = new JsonObject();
             json.addProperty("phone", phone);
             json.addProperty("password", password);
-            json.addProperty("appVersion", "1.2.1");
+            json.addProperty("appVersion", "1.2.2");
 
             RequestBody body = RequestBody.create(json.toString(), JSON);
             Request request = new Request.Builder()
                 .url(loginUrl)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("User-Agent", "OskarSMS-Android/1.2.1")
+                .addHeader("User-Agent", "OskarSMS-Android/1.2.2")
                 .post(body)
                 .build();
 
@@ -151,7 +155,7 @@ public class OskarApiClient {
                 .url(targetUrl)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("x-forwarder-token", secretToken)
-                .addHeader("User-Agent", "OskarSMS-Android/1.2.1");
+                .addHeader("User-Agent", "OskarSMS-Android/1.2.2");
 
             if (adminToken != null && !adminToken.isEmpty()) {
                 reqBuilder.addHeader("x-admin-token", adminToken);
@@ -194,34 +198,39 @@ public class OskarApiClient {
         }
     }
 
-    public List<OrderItem> fetchNewOrders(String primaryUrl, String fallbackUrl, String secretToken, long since) {
-        List<OrderItem> list = executeGetOrders(primaryUrl, secretToken, since);
+    public List<OrderItem> fetchNewOrders(String primaryUrl, String fallbackUrl, String secretToken, String adminToken, String adminPhone, long since) {
+        List<OrderItem> list = executeGetOrders(primaryUrl, secretToken, adminToken, adminPhone, since);
         if (list != null) {
             return list;
         }
 
         if (fallbackUrl != null && !fallbackUrl.isEmpty() && !fallbackUrl.equalsIgnoreCase(primaryUrl)) {
-            list = executeGetOrders(fallbackUrl, secretToken, since);
+            list = executeGetOrders(fallbackUrl, secretToken, adminToken, adminPhone, since);
             if (list != null) {
                 return list;
             }
         }
 
         // Webhook action=orders fallback
-        String webhookOrdersUrl = "https://oskarshop.so/api/sms-webhook?action=orders";
-        list = executeGetOrders(webhookOrdersUrl, secretToken, since);
+        String webhookOrdersUrl = "https://www.oskarshop.so/api/sms-webhook?action=orders";
+        list = executeGetOrders(webhookOrdersUrl, secretToken, adminToken, adminPhone, since);
         return list != null ? list : new ArrayList<>();
     }
 
-    private List<OrderItem> executeGetOrders(String targetUrl, String secretToken, long since) {
+    private List<OrderItem> executeGetOrders(String targetUrl, String secretToken, String adminToken, String adminPhone, long since) {
         try {
             String fullUrl = targetUrl + (targetUrl.contains("?") ? "&" : "?") + "since=" + since;
-            Request request = new Request.Builder()
+            Request.Builder reqBuilder = new Request.Builder()
                 .url(fullUrl)
                 .addHeader("x-forwarder-token", secretToken)
-                .addHeader("User-Agent", "OskarSMS-Android/1.1.2")
-                .get()
-                .build();
+                .addHeader("User-Agent", "OskarSMS-Android/1.2.2");
+            if (adminToken != null && !adminToken.isEmpty()) {
+                reqBuilder.addHeader("x-admin-token", adminToken);
+            }
+            if (adminPhone != null && !adminPhone.isEmpty()) {
+                reqBuilder.addHeader("x-admin-phone", adminPhone);
+            }
+            Request request = reqBuilder.get().build();
 
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful() || response.body() == null) {
@@ -257,17 +266,27 @@ public class OskarApiClient {
         }
     }
 
-    public boolean pingServer(String targetUrl, String secretToken) {
+    public boolean pingServer(String targetUrl, String secretToken, String adminToken, String adminPhone) {
         try {
-            Request request = new Request.Builder()
+            Request.Builder reqBuilder = new Request.Builder()
                 .url(targetUrl)
                 .addHeader("x-forwarder-token", secretToken)
-                .addHeader("User-Agent", "OskarSMS-Android/1.1.0")
-                .get()
-                .build();
+                .addHeader("User-Agent", "OskarSMS-Android/1.2.2");
+            if (adminToken != null && !adminToken.isEmpty()) {
+                reqBuilder.addHeader("x-admin-token", adminToken);
+            }
+            if (adminPhone != null && !adminPhone.isEmpty()) {
+                reqBuilder.addHeader("x-admin-phone", adminPhone);
+            }
+            Request request = reqBuilder.get().build();
 
             try (Response response = client.newCall(request).execute()) {
-                return response.isSuccessful();
+                if (!response.isSuccessful() || response.body() == null) {
+                    return false;
+                }
+                String resStr = response.body().string();
+                JsonObject obj = JsonParser.parseString(resStr).getAsJsonObject();
+                return !obj.has("authenticated") || obj.get("authenticated").getAsBoolean();
             }
         } catch (Exception e) {
             return false;

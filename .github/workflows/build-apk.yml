@@ -43,32 +43,33 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.2.1-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.2.2-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.2.1-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.2.2-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.2.1-APK
-          path: release-output/OskarSMS-v1.2.1-release.apk
+          name: OskarSMS-v1.2.2-APK
+          path: release-output/OskarSMS-v1.2.2-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.2.1
-          name: "OskarSMS v1.2.1 — Anti-SMS-Injection Security Hardening"
+          tag_name: v1.2.2
+          name: "OskarSMS v1.2.2 — Reliable SMS Forwarding & Durable Admin Sessions"
           body: |
-            ### 🛡️ OskarSMS v1.2.1 — Anti-SMS-Injection Security Hardening
+            ### 🛡️ OskarSMS v1.2.2 — Reliable SMS Forwarding & Durable Admin Sessions
 
-            **What's New in v1.2.1:**
-            - **Anti-SMS Injection Protection**: Strictly blocks forwarded SMS originating from personal subscriber mobile numbers.
-            - **Carrier Verification**: Strictly validates official telecom shortcodes (192/EVC-Plus, 100/ZAAD, Sahal, e-Dahab).
-            - **End-to-End Hardening**: Prevents unauthorized automated balance and top-up manipulation.
+            **What's New in v1.2.2:**
+            - **Durable Admin Session**: Eliminates 1-hour token expiration so incoming SMS continue forwarding reliably 24/7.
+            - **Zero-Redirect Endpoint**: Connects directly to `www.oskarshop.so` without HTTP 307 redirects.
+            - **Expanded Carrier Support**: Supports EVC Plus, WAAFI, ZAAD, Sahal, eDahab, Somnet, JEEB, and bank alerts while strictly blocking personal numbers.
+            - **Authenticated Order Alerts**: Attaches admin credentials to order polling and retries transient send failures.
           files: |
-            release-output/OskarSMS-v1.2.1-release.apk
+            release-output/OskarSMS-v1.2.2-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false

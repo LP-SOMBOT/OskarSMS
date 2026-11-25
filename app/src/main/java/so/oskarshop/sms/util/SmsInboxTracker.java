@@ -57,9 +57,9 @@ public class SmsInboxTracker {
         // 2. Allow Official Telecom Names & Shortcodes
         boolean isOfficialTelecomName =
             cleanSender.equals("192") ||
-            cleanSender.contains("EVCPLUS") ||
-            cleanSender.contains("EVC-PLUS") ||
+            cleanSender.contains("EVC") ||
             cleanSender.contains("HORMUUD") ||
+            cleanSender.contains("WAAFI") ||
             cleanSender.equals("100") ||
             cleanSender.equals("123") ||
             cleanSender.contains("ZAAD") ||
@@ -67,8 +67,19 @@ public class SmsInboxTracker {
             cleanSender.contains("SAHAL") ||
             cleanSender.contains("GOLIS") ||
             cleanSender.contains("EDAHAB") ||
+            cleanSender.contains("E-DAHAB") ||
             cleanSender.contains("SOMTEL") ||
-            cleanSender.equals("700");
+            cleanSender.contains("SOMNET") ||
+            cleanSender.contains("JEEB") ||
+            cleanSender.contains("KAASH") ||
+            cleanSender.contains("PREMIER") ||
+            cleanSender.contains("AMAL") ||
+            cleanSender.contains("SALAAM") ||
+            cleanSender.equals("700") ||
+            cleanSender.equals("712") ||
+            cleanSender.equals("777") ||
+            cleanSender.equals("812") ||
+            cleanSender.equals("880");
 
         // 3. Shortcodes (3 to 6 digits, e.g., 192, 100, 123, 700)
         boolean isCarrierShortcode = digitsOnly.length() >= 3 && digitsOnly.length() <= 6;
@@ -82,14 +93,25 @@ public class SmsInboxTracker {
         String lowerBody = body.toLowerCase(Locale.ROOT);
         boolean hasPaymentKeywords =
             lowerBody.contains("ka heshay") ||
+            lowerBody.contains("heshay") ||
+            lowerBody.contains("ayaad") ||
             lowerBody.contains("waxaad") ||
             lowerBody.contains("haraagaagu") ||
+            lowerBody.contains("haraagagu") ||
             lowerBody.contains("haraaga") ||
+            lowerBody.contains("lacag") ||
+            lowerBody.contains("received") ||
             lowerBody.contains("evcplus") ||
             lowerBody.contains("evc-plus") ||
+            lowerBody.contains("evc plus") ||
+            lowerBody.contains("waafi") ||
             lowerBody.contains("zaad") ||
             lowerBody.contains("sahal") ||
-            lowerBody.contains("edahab");
+            lowerBody.contains("somnet") ||
+            lowerBody.contains("jeeb") ||
+            lowerBody.contains("edahab") ||
+            lowerBody.contains("e-dahab") ||
+            lowerBody.contains("premier");
 
         return hasPaymentKeywords;
     }
@@ -134,6 +156,22 @@ public class SmsInboxTracker {
         } catch (Exception e) {
             Log.e(TAG, "Error in markIfNew: " + e.getMessage());
             return true;
+        }
+    }
+
+    /**
+     * Removes a fingerprint from processed cache so transient network/auth failures can be retried cleanly.
+     */
+    public static synchronized void unmark(Context context, String fingerprint) {
+        if (fingerprint == null) return;
+        try {
+            SharedPreferences prefs = context.getApplicationContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            Set<String> set = new HashSet<>(prefs.getStringSet(KEY_PROCESSED_HASHES, new HashSet<>()));
+            if (set.remove(fingerprint)) {
+                prefs.edit().putStringSet(KEY_PROCESSED_HASHES, set).apply();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in unmark: " + e.getMessage());
         }
     }
 

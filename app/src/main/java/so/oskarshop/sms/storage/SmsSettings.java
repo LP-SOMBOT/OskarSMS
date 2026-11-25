@@ -6,10 +6,10 @@ import android.content.SharedPreferences;
 public class SmsSettings {
     private static final String PREF_NAME = "oskar_sms_config";
 
-    public static final String DEFAULT_SERVER_URL = "https://oskarshop.so/api/sms-webhook";
-    public static final String DEFAULT_FALLBACK_URL = "https://beta.oskarshop.so/api/sms-webhook";
-    public static final String DEFAULT_ORDERS_URL = "https://oskarshop.so/api/apk/orders";
-    public static final String DEFAULT_ORDERS_FALLBACK_URL = "https://beta.oskarshop.so/api/apk/orders";
+    public static final String DEFAULT_SERVER_URL = "https://www.oskarshop.so/api/sms-webhook";
+    public static final String DEFAULT_FALLBACK_URL = "https://www.oskarshop.so/api/sms-webhook";
+    public static final String DEFAULT_ORDERS_URL = "https://www.oskarshop.so/api/apk/orders";
+    public static final String DEFAULT_ORDERS_FALLBACK_URL = "https://www.oskarshop.so/api/apk/orders";
     public static final String DEFAULT_SECRET_TOKEN = "oskar_sms_sec_9941a87e2f5b40c6";
 
     private static final String KEY_ENABLED = "is_enabled";
@@ -29,6 +29,7 @@ public class SmsSettings {
     private static final String KEY_ADMIN_PHONE = "admin_phone";
     private static final String KEY_ADMIN_NAME = "admin_name";
     private static final String KEY_ADMIN_TOKEN = "admin_token";
+    private static final String KEY_DURABLE_SESSION_V2 = "is_durable_session_v2";
 
     private final SharedPreferences prefs;
 
@@ -46,8 +47,7 @@ public class SmsSettings {
 
     public String getServerUrl() {
         String url = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL);
-        // Automatically migrate old beta URL to main production website
-        if (url != null && url.contains("beta.oskarshop.so")) {
+        if (url == null || url.contains("beta.oskarshop.so") || url.startsWith("https://oskarshop.so") || url.startsWith("http://oskarshop.so")) {
             url = DEFAULT_SERVER_URL;
             setServerUrl(url);
         }
@@ -59,12 +59,17 @@ public class SmsSettings {
     }
 
     public String getFallbackUrl() {
-        return prefs.getString(KEY_FALLBACK_URL, DEFAULT_FALLBACK_URL);
+        String url = prefs.getString(KEY_FALLBACK_URL, DEFAULT_FALLBACK_URL);
+        if (url == null || url.contains("beta.oskarshop.so") || url.startsWith("https://oskarshop.so")) {
+            url = DEFAULT_FALLBACK_URL;
+            prefs.edit().putString(KEY_FALLBACK_URL, url).apply();
+        }
+        return url;
     }
 
     public String getOrdersUrl() {
         String url = prefs.getString(KEY_ORDERS_URL, DEFAULT_ORDERS_URL);
-        if (url != null && url.contains("beta.oskarshop.so")) {
+        if (url == null || url.contains("beta.oskarshop.so") || url.startsWith("https://oskarshop.so")) {
             url = DEFAULT_ORDERS_URL;
             prefs.edit().putString(KEY_ORDERS_URL, url).apply();
         }
@@ -143,12 +148,22 @@ public class SmsSettings {
     }
 
     public boolean isLoggedIn() {
-        return prefs.getBoolean(KEY_IS_LOGGED_IN, false);
+        if (!prefs.getBoolean(KEY_IS_LOGGED_IN, false)) {
+            return false;
+        }
+        String token = getAdminToken();
+        // Auto-expire legacy 1-hour Firebase JWT tokens ("eyJ...") so admin upgrades to durable session cleanly
+        if (token == null || token.trim().isEmpty() || token.startsWith("eyJ") || !prefs.getBoolean(KEY_DURABLE_SESSION_V2, false)) {
+            logout();
+            return false;
+        }
+        return true;
     }
 
     public void setLoggedIn(boolean loggedIn, String phone, String name, String token, String secretToken) {
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean(KEY_IS_LOGGED_IN, loggedIn);
+        editor.putBoolean(KEY_DURABLE_SESSION_V2, loggedIn);
         editor.putString(KEY_ADMIN_PHONE, phone);
         editor.putString(KEY_ADMIN_NAME, name);
         editor.putString(KEY_ADMIN_TOKEN, token);
@@ -161,6 +176,7 @@ public class SmsSettings {
     public void logout() {
         prefs.edit()
             .putBoolean(KEY_IS_LOGGED_IN, false)
+            .putBoolean(KEY_DURABLE_SESSION_V2, false)
             .remove(KEY_ADMIN_TOKEN)
             .remove(KEY_ADMIN_PHONE)
             .remove(KEY_ADMIN_NAME)
