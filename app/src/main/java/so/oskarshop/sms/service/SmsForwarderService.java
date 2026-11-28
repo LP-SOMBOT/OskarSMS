@@ -14,6 +14,10 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -29,12 +33,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import so.oskarshop.sms.MainActivity;
 import so.oskarshop.sms.R;
 import so.oskarshop.sms.model.OrderItem;
 import so.oskarshop.sms.model.SmsLogEntry;
 import so.oskarshop.sms.network.OskarApiClient;
 import so.oskarshop.sms.receiver.WatchdogReceiver;
+import so.oskarshop.sms.storage.PendingSmsQueue;
 import so.oskarshop.sms.storage.SmsLogStorage;
 import so.oskarshop.sms.storage.SmsSettings;
 import so.oskarshop.sms.update.AppUpdateManager;
@@ -73,6 +79,8 @@ public class SmsForwarderService extends Service {
     private SmsLogStorage logStorage;
     private PowerManager.WakeLock wakeLock;
     private ContentObserver smsContentObserver;
+    private ConnectivityManager.NetworkCallback networkCallback;
+    private final AtomicBoolean isFlushingQueue = new AtomicBoolean(false);
 
     public static void startListening(Context context) {
         Intent intent = new Intent(context, SmsForwarderService.class);
@@ -112,11 +120,17 @@ public class SmsForwarderService extends Service {
         // 1. Register SMS ContentObserver for instant SQLite inbox capture
         registerSmsContentObserver();
 
-        // 2. Start background pollers (order alerts + periodic inbox reconciliation)
+        // 2. Register ConnectivityManager NetworkCallback for instant offline-to-online flush
+        registerNetworkCallback();
+
+        // 3. Start background pollers (order alerts + periodic inbox reconciliation + queue flusher)
         startBackgroundPollers();
 
-        // 3. Schedule 24/7 anti-kill watchdog
+        // 4. Schedule 24/7 anti-kill watchdog
         WatchdogReceiver.scheduleWatchdog(this);
+
+        // 5. Flush any pending SMS persisted before process restart
+        executor.execute(this::flushPendingQueue);
     }
 
     @Override
@@ -142,7 +156,11 @@ public class SmsForwarderService extends Service {
                     System.currentTimeMillis()
                 );
                 showNewOrderNotification(testOrder);
+            } else if (ACTION_START_LISTENING.equals(action)) {
+                executor.execute(this::flushPendingQueue);
             }
+        } else {
+            executor.execute(this::flushPendingQueue);
         }
         return START_STICKY;
     }
@@ -178,7 +196,7 @@ public class SmsForwarderService extends Service {
             settings.setLastCheckedOrderTime(System.currentTimeMillis() - 30000);
         }
 
-        pollerExecutor = Executors.newScheduledThreadPool(3);
+        pollerExecutor = Executors.newScheduledThreadPool(4);
 
         // 1. Order alert poller: checks every 6 seconds
         pollerExecutor.scheduleWithFixedDelay(this::pollOrdersWorker, 2, 6, TimeUnit.SECONDS);
@@ -186,19 +204,23 @@ public class SmsForwarderService extends Service {
         // 2. Fail-safe inbox sweep poller: checks every 10 seconds for any missed SMS
         pollerExecutor.scheduleWithFixedDelay(this::scanAndForwardInboxMessages, 4, 10, TimeUnit.SECONDS);
 
-        // 3. In-App update poller: checks every 60 minutes for new APK releases
+        // 3. Offline/slow-network persistent queue flusher: checks every 15 seconds
+        pollerExecutor.scheduleWithFixedDelay(this::flushPendingQueue, 3, 15, TimeUnit.SECONDS);
+
+        // 4. In-App update poller: checks every 60 minutes for new APK releases
         pollerExecutor.scheduleWithFixedDelay(this::checkForAppUpdatesWorker, 1, 60, TimeUnit.MINUTES);
     }
 
     /**
      * Sweeps recent inbox messages from the phone database and forwards any new messages.
-     * Captures 100% of SMS from any sender and any number.
+     * Captures 100% of carrier SMS from the last 2 hours for offline/sleep recovery.
      */
     private void scanAndForwardInboxMessages() {
         if (!settings.isLoggedIn() || !settings.isEnabled()) return;
         try {
-            long window = System.currentTimeMillis() - 15 * 60 * 1000; // last 15 minutes
+            long window = System.currentTimeMillis() - 2L * 60 * 60 * 1000; // last 2 hours
             List<SmsInboxTracker.RawSms> messages = SmsInboxTracker.queryRecentInbox(this, window);
+            boolean enqueuedAny = false;
             for (SmsInboxTracker.RawSms msg : messages) {
                 if (msg.body == null || msg.body.trim().isEmpty()) continue;
                 // Anti-SMS Injection Guard: Ignore personal mobile numbers
@@ -208,8 +230,12 @@ public class SmsForwarderService extends Service {
                 String fingerprint = SmsInboxTracker.computeFingerprint(msg.address, msg.body, msg.date);
                 if (SmsInboxTracker.markIfNew(this, fingerprint)) {
                     Log.i(TAG, "Dual-Capture detected unforwarded carrier SMS in inbox from [" + msg.address + "]: " + msg.body);
-                    processSms(msg.address, msg.body, fingerprint);
+                    PendingSmsQueue.enqueue(this, msg.address, msg.body, msg.date);
+                    enqueuedAny = true;
                 }
+            }
+            if (enqueuedAny) {
+                flushPendingQueue();
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in scanAndForwardInboxMessages: " + e.getMessage());
@@ -260,6 +286,37 @@ public class SmsForwarderService extends Service {
         }
     }
 
+    private void registerNetworkCallback() {
+        if (networkCallback != null) return;
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return;
+
+            networkCallback = new ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(Network network) {
+                    super.onAvailable(network);
+                    if (settings.isLoggedIn() && settings.isEnabled()) {
+                        Log.i(TAG, "Network available! Flushing pending SMS queue...");
+                        executor.execute(() -> flushPendingQueue());
+                    }
+                }
+            };
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                cm.registerDefaultNetworkCallback(networkCallback);
+            } else {
+                NetworkRequest request = new NetworkRequest.Builder()
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .build();
+                cm.registerNetworkCallback(request, networkCallback);
+            }
+            Log.i(TAG, "Registered ConnectivityManager NetworkCallback for offline-to-online recovery");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to register NetworkCallback: " + e.getMessage());
+        }
+    }
+
     public void processSms(String sender, String body) {
         processSms(sender, body, null);
     }
@@ -276,13 +333,31 @@ public class SmsForwarderService extends Service {
             return;
         }
 
-        if (wakeLock != null && !wakeLock.isHeld()) {
-            wakeLock.acquire(30000); // Hold for 30s max
-        }
+        PendingSmsQueue.enqueue(this, sender, body, System.currentTimeMillis());
+        executor.execute(this::flushPendingQueue);
+    }
 
-        executor.execute(() -> {
-            try {
-                Log.i(TAG, "Forwarding captured SMS by admin [" + settings.getAdminPhone() + "]: sender=" + sender);
+    private void flushPendingQueue() {
+        if (!settings.isLoggedIn() || !settings.isEnabled()) return;
+        if (!OskarApiClient.isNetworkAvailable(this)) return;
+        if (!isFlushingQueue.compareAndSet(false, true)) return;
+
+        try {
+            List<PendingSmsQueue.PendingSms> pending = PendingSmsQueue.peekAll(this);
+            if (pending.isEmpty()) return;
+
+            if (wakeLock != null && !wakeLock.isHeld()) {
+                wakeLock.acquire(45000); // Hold for 45s max during queue flush
+            }
+
+            for (PendingSmsQueue.PendingSms item : pending) {
+                if (!settings.isLoggedIn() || !settings.isEnabled()) break;
+                if (!OskarApiClient.isNetworkAvailable(this)) {
+                    Log.w(TAG, "Network dropped mid-flush; keeping remaining " + PendingSmsQueue.size(this) + " SMS queued.");
+                    break;
+                }
+
+                Log.i(TAG, "Forwarding queued SMS [" + item.id + "] by admin [" + settings.getAdminPhone() + "]: sender=" + item.sender);
 
                 OskarApiClient.ForwardResult result = apiClient.forwardSms(
                     settings.getServerUrl(),
@@ -290,21 +365,23 @@ public class SmsForwarderService extends Service {
                     settings.getSecretToken(),
                     settings.getAdminToken(),
                     settings.getAdminPhone(),
-                    sender,
-                    body
+                    item.sender,
+                    item.body
                 );
 
-                // Unmark transient network/5xx/401 failures so SMS can be retried instead of dropped
-                if (!result.success && fingerprint != null &&
-                    (result.httpCode == 0 || result.httpCode >= 500 || result.httpCode == 401)) {
-                    SmsInboxTracker.unmark(this, fingerprint);
-                }
-
                 if (result.httpCode == 401) {
-                    Log.w(TAG, "Admin session rejected with 401; resetting session so admin can re-authenticate.");
+                    Log.w(TAG, "Admin session rejected with 401; keeping SMS queued and resetting session.");
                     settings.logout();
+                    break;
                 }
 
+                if (!result.success && (result.httpCode == 0 || result.httpCode >= 500)) {
+                    Log.w(TAG, "Transient network/server failure (HTTP " + result.httpCode + "); keeping SMS queued for retry.");
+                    break;
+                }
+
+                // Delivered or permanently rejected (400/403/422): remove from pending queue
+                PendingSmsQueue.removeById(this, item.id);
                 settings.incrementTotalForwarded();
 
                 String status = "FAILED";
@@ -323,8 +400,8 @@ public class SmsForwarderService extends Service {
                 }
 
                 SmsLogEntry entry = new SmsLogEntry(
-                    sender,
-                    body,
+                    item.sender,
+                    item.body,
                     result.amount,
                     result.phone,
                     status,
@@ -337,15 +414,15 @@ public class SmsForwarderService extends Service {
                 // Notify UI to refresh in real-time
                 Intent broadcast = new Intent(ACTION_NEW_LOG);
                 sendBroadcast(broadcast);
-
-            } catch (Exception e) {
-                Log.e(TAG, "Error in processSms worker: " + e.getMessage(), e);
-            } finally {
-                if (wakeLock != null && wakeLock.isHeld()) {
-                    wakeLock.release();
-                }
             }
-        });
+        } catch (Exception e) {
+            Log.e(TAG, "Error in flushPendingQueue worker: " + e.getMessage(), e);
+        } finally {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+            }
+            isFlushingQueue.set(false);
+        }
     }
 
     private void createNotificationChannels() {
@@ -563,12 +640,22 @@ public class SmsForwarderService extends Service {
 
         Intent restartIntent = new Intent(getApplicationContext(), SmsForwarderService.class);
         restartIntent.setAction(ACTION_START_LISTENING);
-        PendingIntent restartPendingIntent = PendingIntent.getService(
-            getApplicationContext(),
-            9999,
-            restartIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
+        PendingIntent restartPendingIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            restartPendingIntent = PendingIntent.getForegroundService(
+                getApplicationContext(),
+                9999,
+                restartIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+        } else {
+            restartPendingIntent = PendingIntent.getService(
+                getApplicationContext(),
+                9999,
+                restartIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+        }
 
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         if (alarmManager != null) {
@@ -596,6 +683,14 @@ public class SmsForwarderService extends Service {
         if (smsContentObserver != null) {
             try {
                 getContentResolver().unregisterContentObserver(smsContentObserver);
+            } catch (Exception ignored) {}
+        }
+        if (networkCallback != null) {
+            try {
+                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                if (cm != null) {
+                    cm.unregisterNetworkCallback(networkCallback);
+                }
             } catch (Exception ignored) {}
         }
         executor.shutdown();

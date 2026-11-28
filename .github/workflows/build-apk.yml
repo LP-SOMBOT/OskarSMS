@@ -43,33 +43,32 @@ jobs:
       - name: Prepare Release Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.2.2-release.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS-v1.2.3-release.apk
           cp app/build/outputs/apk/release/app-release.apk release-output/OskarSMS.apk
-          echo "APK successfully built and signed at release-output/OskarSMS-v1.2.2-release.apk"
+          echo "APK successfully built and signed at release-output/OskarSMS-v1.2.3-release.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OskarSMS-v1.2.2-APK
-          path: release-output/OskarSMS-v1.2.2-release.apk
+          name: OskarSMS-v1.2.3-APK
+          path: release-output/OskarSMS-v1.2.3-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.2.2
-          name: "OskarSMS v1.2.2 — Reliable SMS Forwarding & Durable Admin Sessions"
+          tag_name: v1.2.3
+          name: "OskarSMS v1.2.3 — 24/7 Doze Shield & Offline Retry Queue"
           body: |
-            ### 🛡️ OskarSMS v1.2.2 — Reliable SMS Forwarding & Durable Admin Sessions
+            ### 🛡️ OskarSMS v1.2.3 — 24/7 Doze Shield & Offline Retry Queue
 
-            **What's New in v1.2.2:**
-            - **Durable Admin Session**: Eliminates 1-hour token expiration so incoming SMS continue forwarding reliably 24/7.
-            - **Zero-Redirect Endpoint**: Connects directly to `www.oskarshop.so` without HTTP 307 redirects.
-            - **Expanded Carrier Support**: Supports EVC Plus, WAAFI, ZAAD, Sahal, eDahab, Somnet, JEEB, and bank alerts while strictly blocking personal numbers.
-            - **Authenticated Order Alerts**: Attaches admin credentials to order polling and retries transient send failures.
+            **What's New in v1.2.3:**
+            - **Persistent Offline Queue**: SMS captured while offline or on slow connections are queued safely and forwarded automatically the instant internet returns.
+            - **Deep Sleep / Doze Protection**: WakeLock handoff in `SmsReceiver` + `SCHEDULE_EXACT_ALARM` + 3-minute watchdog + `PendingIntent.getForegroundService` resurrection when closed.
+            - **Slow Network Resilience**: Extended HTTP timeouts (`25s` connect / `45s` read) and 2-hour inbox sweep recovery.
           files: |
-            release-output/OskarSMS-v1.2.2-release.apk
+            release-output/OskarSMS-v1.2.3-release.apk
             release-output/OskarSMS.apk
           draft: false
           prerelease: false

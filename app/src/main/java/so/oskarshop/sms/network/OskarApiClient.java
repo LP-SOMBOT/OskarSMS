@@ -1,5 +1,11 @@
 package so.oskarshop.sms.network;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.os.Build;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -22,11 +28,35 @@ public class OskarApiClient {
 
     public OskarApiClient() {
         this.client = new OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(25, TimeUnit.SECONDS)
-            .writeTimeout(20, TimeUnit.SECONDS)
+            .connectTimeout(25, TimeUnit.SECONDS)
+            .readTimeout(45, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build();
+    }
+
+    public static boolean isNetworkAvailable(Context context) {
+        if (context == null) return true;
+        try {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return false;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Network nw = cm.getActiveNetwork();
+                if (nw == null) return false;
+                NetworkCapabilities actNw = cm.getNetworkCapabilities(nw);
+                return actNw != null && (
+                    actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                    actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                    actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                    actNw.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                );
+            } else {
+                NetworkInfo nwInfo = cm.getActiveNetworkInfo();
+                return nwInfo != null && nwInfo.isConnected();
+            }
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public static class LoginResult {

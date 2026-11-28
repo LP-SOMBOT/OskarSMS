@@ -18,7 +18,7 @@ import so.oskarshop.sms.storage.SmsSettings;
 public class WatchdogReceiver extends BroadcastReceiver {
     private static final String TAG = "OskarWatchdog";
     public static final String ACTION_WATCHDOG_PING = "so.oskarshop.sms.WATCHDOG_PING";
-    private static final long WATCHDOG_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    private static final long WATCHDOG_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
 
     @Override
     public void onReceive(Context context, Intent intent) {

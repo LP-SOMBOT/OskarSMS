@@ -7,16 +7,20 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <!-- Internet & Network Connectivity -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     
-    <!-- 24/7 Background & Keep-Alive Reliability -->
+    <!-- 24/7 Background, Doze Wake & Keep-Alive Reliability -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -57,29 +61,34 @@
             </intent-filter>
         </activity>
 
-        <!-- Dedicated Incoming SMS Broadcast Receiver (Highest Priority 999) -->
+        <!-- Dedicated Incoming SMS Broadcast Receiver (Maximum Priority) -->
         <receiver
             android:name=".receiver.SmsReceiver"
             android:enabled="true"
             android:exported="true"
-            android:priority="999">
-            <intent-filter android:priority="999">
+            android:permission="android.permission.BROADCAST_SMS"
+            android:priority="2147483647">
+            <intent-filter android:priority="2147483647">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+                <action android:name="android.provider.Telephony.WAP_PUSH_RECEIVED" />
             </intent-filter>
         </receiver>
 
-        <!-- System & Boot Event Receiver -->
+        <!-- System, Boot & Connectivity Event Receiver -->
         <receiver
             android:name=".receiver.BootReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:directBootAware="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.USER_PRESENT" />
                 <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
             </intent-filter>
         </receiver>
 
